@@ -130,16 +130,11 @@ Chaque niveau est une "salle" de laboratoire, introduisant de nouvelles mécaniq
 
 ## 🤝 Contribution
 
-Ce projet est développé par [Ton Nom/Nom de l'équipe].
+Ce projet est développé par [K2 (moi.)].
 
 Si vous souhaitez contribuer ou avez des questions, n'hésitez pas à ouvrir une issue ou à nous contacter.
 
 ---
 
-## 📄 Licence
-
-[À ajouter si tu as choisi une licence spécifique, par exemple : MIT, GPL, etc.]
-
----
 
 **Développé avec Unity.**
