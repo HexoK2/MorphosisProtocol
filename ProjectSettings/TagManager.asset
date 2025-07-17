@@ -5,14 +5,15 @@ TagManager:
   serializedVersion: 3
   tags:
   - GroundTile
+  - Obstacle
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Obstacle
   - Water
   - UI
-  - 
+  - Ground
   - 
   - 
   - 
