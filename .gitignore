@@ -41,64 +41,32 @@ desktop.ini # Windows
 # RÈGLES SPÉCIFIQUES POUR VOTRE PROJET
 # =========================================================
 
-# Ignorer TOUS les contenus du dossier Assets/ par défaut,
-# SAUF ceux que vous voulez explicitement inclure.
-# C'est une stratégie plus stricte mais efficace pour ne garder que l'essentiel.
-# ATTENTION : Utilisez cette approche AVEC PRUDENCE et assurez-vous de bien lister les exceptions.
-Assets/*
+# --- STRATÉGIE POUR LE DOSSIER ASSETS ---
+# Par défaut, tous les fichiers et dossiers sous Assets/ sont suivis par Git.
+# Nous n'avons PAS de ligne "Assets/*" ici, qui ignorerait tout par défaut.
 
-# Exceptions : DÉ-IGNORER les dossiers et fichiers essentiels
-# Note: Les barres obliques inversées devant le '#' permettent d'inclure les fichiers qui commencent par #.
-# Pas nécessaire ici, mais utile pour d'autres cas.
+# Règle d'ignorance pour le dossier "Extra-Asset" et tout son contenu.
+# Ce dossier et ses fichiers (y compris les .meta) seront IGNORÉS par Git.
+Assets/Extra-Asset/
+Assets/Extra-Asset/**/*
+#Assets/Extra-Asset/**/*.meta
 
-# Scènes (et sous-dossiers de scènes si vous en avez)
-!Assets/Scenes/ # Dé-ignore le dossier Scenes
-!Assets/Scenes/**/*.unity # Dé-ignore tous les fichiers .unity dans Scenes et ses sous-dossiers
-!Assets/Scenes/**/*.meta # Dé-ignore les fichiers .meta associés aux scènes
-
-# Scripts (et sous-dossiers de scripts si vous en avez)
-!Assets/Scripts/ # Dé-ignore le dossier Scripts
-!Assets/Scripts/**/*.cs # Dé-ignore tous les fichiers .cs dans Scripts et ses sous-dossiers
-!Assets/Scripts/**/*.meta # Dé-ignore les fichiers .meta associés aux scripts
-
-# Votre dossier personnalisé "Extra-Asset"
-!Assets/Extra-Asset/ # Dé-ignore votre dossier Extra-Asset
-!Assets/Extra-Asset/** # Dé-ignore tout le contenu de Extra-Asset
-!Assets/Extra-Asset/**/*.meta # Dé-ignore tous les fichiers .meta dans Extra-Asset et ses sous-dossiers
+# --- RÈGLES ESSENTIELLES HORS DOSSIER ASSETS ---
 
 # Fichier ProjectSettings (essentiel pour les paramètres du projet Unity)
-!ProjectSettings/
-!ProjectSettings/**/*.asset # Inclut tous les fichiers .asset dans ProjectSettings
-!ProjectSettings/**/*.json # Inclut tous les fichiers .json dans ProjectSettings
-!ProjectSettings/**/*.mat # Inclut tous les fichiers .mat dans ProjectSettings
-!ProjectSettings/**/*.prefs # Inclut tous les fichiers .prefs dans ProjectSettings
+# Nous voulons inclure ces fichiers, mais le dossier ProjectSettings/ est souvent ignoré par d'autres règles si mal placé.
+# La meilleure pratique est de ne pas l'ignorer globalement.
+ProjectSettings/
+!ProjectSettings/**/*.asset
+!ProjectSettings/**/*.json
+!ProjectSettings/**/*.mat
+!ProjectSettings/**/*.prefs
 
 # Fichiers du package Manifest (dépendances des packages UPM)
 # Ceux-ci sont essentiels pour que Unity sache quels packages sont utilisés.
-!Packages/
+Packages/
 !Packages/manifest.json
 !Packages/packages-lock.json
 
-# (OPTIONNEL) Si vous avez des Prefabs que vous voulez garder
-# (Recommandé si vos Prefabs sont configurés avec des scripts)
-!Assets/Prefabs/
- !Assets/Prefabs/**/*.prefab
- !Assets/Prefabs/**/*.meta
-
-# (OPTIONNEL) Si vous avez des Materials personnalisés non liés à des assets téléchargés
-# (Peut être utile pour vos propres matériaux de base)
-!Assets/Materials/
- !Assets/Materials/**/*.mat
- !Assets/Materials/**/*.meta
-
-# (OPTIONNEL) Si vous avez des Textures/Sprites personnalisées non liées à des assets téléchargés
-# !Assets/Textures/
-# !Assets/Textures/**/*.png
-# !Assets/Textures/**/*.jpg
-# !Assets/Textures/**/*.meta
-
-# (OPTIONNEL) Si vous avez des Model (FBX/OBJ) personnalisés non liés à des assets téléchargés
-# !Assets/Models/
-# !Assets/Models/**/*.fbx
-# !Assets/Models/**/*.obj
-# !Assets/Models/**/*.meta
+# Fichiers temporaires des packages UPM qui ne doivent pas être versionnés
+# Ajoutez ici d'autres règles si vous trouvez des fichiers indésirables dans votre dossier Packages/
