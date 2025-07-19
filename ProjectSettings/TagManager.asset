@@ -6,6 +6,7 @@ TagManager:
   tags:
   - GroundTile
   - Obstacle
+  - FallingPlatform
   layers:
   - Default
   - TransparentFX

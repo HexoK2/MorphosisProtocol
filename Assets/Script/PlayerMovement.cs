@@ -1,6 +1,7 @@
 using UnityEngine;
+using System.Collections; // Ajouté pour les Coroutines
 using System.Collections.Generic;
-using System.Linq; // Assurez-vous que cette ligne est présente
+using System.Linq;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(LineRenderer))]
@@ -18,7 +19,7 @@ public class PlayerMovement : MonoBehaviour
     public float maxVerticalJumpDifference = 1.5f;
     [Tooltip("Offset vertical pour que la boule ne s'enfonce pas dans le sol.")]
     public float verticalOffsetOnGround = 0.5f;
-    [Tooltip("Nombre maximal de cases que le joueur peut parcourir en un seul clic.")] // NOUVEAU PARAMÈTRE
+    [Tooltip("Nombre maximal de cases que le joueur peut parcourir en un seul clic.")]
     public int maxPathLength = 3;
 
     // --- Références et Grille ---
@@ -38,7 +39,7 @@ public class PlayerMovement : MonoBehaviour
     public Material selectedCellMaterial;
     [Tooltip("Le Material à appliquer au cube survolé (hover).")]
     public Material hoveredCellMaterial;
-    [Tooltip("Le Material à appliquer aux cases hors de portée du mouvement.")] // NOUVEAU MATERIAL
+    [Tooltip("Le Material à appliquer aux cases hors de portée du mouvement.")]
     public Material outOfRangeCellMaterial;
 
     private Material defaultCellMaterial;
@@ -58,6 +59,17 @@ public class PlayerMovement : MonoBehaviour
     public float shakeDuration = 0.1f; // Courte durée pour une vibration rapide
     [Tooltip("Intensité de la vibration de l'écran.")]
     public float shakeMagnitude = 0.1f; // Petite valeur pour une vibration subtile
+
+    // --- NOUVEAU: Paramètres des Plaques Tombantes ---
+    [Header("Plaques Tombantes")]
+    [Tooltip("Le tag des plateformes qui doivent tomber au contact.")]
+    public string fallingPlatformTag = "FallingPlatform";
+    [Tooltip("Délai avant que la plateforme ne commence à tomber après contact.")]
+    public float fallDelay = 0.5f;
+    [Tooltip("Durée de la chute de la plateforme.")]
+    public float fallDuration = 1.5f;
+    [Tooltip("Distance de chute de la plateforme.")]
+    public float fallDistance = 10f; // Distance vers le bas pour simuler la chute
 
     private Rigidbody rb;
     private LineRenderer lr;
@@ -143,7 +155,8 @@ public class PlayerMovement : MonoBehaviour
     void InitializeGridCubes()
     {
         gridPositionsToCubes = new Dictionary<Vector3, GameObject>();
-        Collider[] gridColliders = Physics.OverlapSphere(Vector3.zero, 500f, gridLayer);
+        // Adaptez le OverlapSphere à la taille de votre grille
+        Collider[] gridColliders = Physics.OverlapSphere(Vector3.zero, 500f, gridLayer); 
 
         foreach (Collider col in gridColliders)
         {
@@ -412,7 +425,8 @@ public class PlayerMovement : MonoBehaviour
             }
 
             // Si la distance est déjà trop grande pour atteindre la cible, ne pas explorer plus loin
-            if (distance[current] >= maxPathLength && target != current) // Permet d'atteindre la case 'maxPathLength' elle-même
+            // La condition 'target != current' permet au chemin d'inclure la case 'maxPathLength' elle-même
+            if (distance[current] >= maxPathLength && target != current) 
             {
                 continue;
             }
@@ -430,8 +444,7 @@ public class PlayerMovement : MonoBehaviour
                     if (neighbor == target && distance[neighbor] > maxPathLength)
                     {
                         foundPath = false; // Le chemin vers la cible est trop long
-                        // Il faut vider la queue pour ne pas continuer à trouver ce chemin invalide
-                        queue.Clear();
+                        queue.Clear(); // Vider la queue pour ne pas continuer à trouver ce chemin invalide
                         break; // Sortir de la boucle des voisins
                     }
                 }
@@ -555,11 +568,73 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // NOUVEAU: Détection de collision pour les plateformes qui tombent
+    void OnCollisionEnter(Collision collision)
+    {
+        // Vérifie si l'objet avec lequel la boule est entrée en collision a le tag "FallingPlatform"
+        if (collision.gameObject.CompareTag(fallingPlatformTag))
+        {
+            // Vérifie si la boule a atterri sur la plateforme (contact par le haut)
+            // C'est une vérification simple. Si la plateforme est très inclinée, cela pourrait être imprécis.
+            // Une autre option est de vérifier la direction de la normale de la collision.
+            if (transform.position.y > collision.gameObject.transform.position.y - 0.1f) // La boule est légèrement au-dessus ou au même niveau
+            {
+                // Démarre la coroutine pour faire tomber la plateforme
+                StartCoroutine(FallPlatform(collision.gameObject));
+            }
+        }
+    }
+
+    // NOUVEAU: Coroutine pour faire tomber une plateforme
+    IEnumerator FallPlatform(GameObject platform)
+    {
+        // On peut ajouter un mécanisme pour éviter de déclencher la chute plusieurs fois
+        // Par exemple, un booléen sur un script de la plateforme, ou vérifier si elle a déjà été désactivée.
+        if (!platform.activeSelf) // Si elle est déjà désactivée, ne fait rien
+        {
+            yield break;
+        }
+
+        yield return new WaitForSeconds(fallDelay); // Attendre le délai avant de tomber
+
+        Vector3 startPos = platform.transform.position;
+        Vector3 endPos = platform.transform.position - Vector3.up * fallDistance;
+        float elapsed = 0f;
+
+        // On peut désactiver le collider de la plateforme pour éviter de nouvelles interactions
+        // et pour que la boule puisse tomber si la plaque est le seul support
+        Collider platformCollider = platform.GetComponent<Collider>();
+        if (platformCollider != null)
+        {
+            platformCollider.enabled = false;
+        }
+
+        // On peut aussi enlever le Rigidbody si la plateforme en avait un et qu'il gêne
+        // Rigidbody platformRb = platform.GetComponent<Rigidbody>();
+        // if (platformRb != null) platformRb.isKinematic = true; // Empêche la physique de l'affecter pendant la chute contrôlée
+
+        while (elapsed < fallDuration)
+        {
+            platform.transform.position = Vector3.Lerp(startPos, endPos, elapsed / fallDuration);
+            elapsed += Time.deltaTime;
+            yield return null; // Attendre la prochaine frame
+        }
+
+        platform.transform.position = endPos; // S'assurer qu'elle arrive bien à la position finale
+        // Optionnel : Détruire la plateforme ou la désactiver après la chute
+        // Destroy(platform); // Si elle doit disparaître définitivement
+        platform.SetActive(false); // La désactiver pour qu'elle ne soit plus visible ou interagit
+    }
+
+
     // Nouvelle coroutine pour faire vibrer l'écran
     System.Collections.IEnumerator ShakeScreen()
     {
         // Sauvegarder la position originale de la caméra
-        Vector3 originalCameraPosition = Camera.main.transform.localPosition;
+        // Si la caméra est un enfant du joueur, vous voudrez peut-être secouer la caméra elle-même
+        // ou un parent temporaire, plutôt que la position locale par rapport à son propre parent.
+        // Assurez-vous que Camera.main.transform.localPosition est la bonne référence.
+        Vector3 originalCameraLocalPosition = Camera.main.transform.localPosition;
         float elapsed = 0f;
 
         while (elapsed < shakeDuration)
@@ -567,18 +642,15 @@ public class PlayerMovement : MonoBehaviour
             float x = Random.Range(-1f, 1f) * shakeMagnitude;
             float y = Random.Range(-1f, 1f) * shakeMagnitude;
 
-            Camera.main.transform.localPosition = originalCameraPosition + new Vector3(x, y, 0);
+            Camera.main.transform.localPosition = originalCameraLocalPosition + new Vector3(x, y, 0);
 
             elapsed += Time.deltaTime;
             yield return null; // Attend la prochaine frame
         }
 
         // Réinitialiser la position de la caméra après la vibration
-        Camera.main.transform.localPosition = originalCameraPosition;
+        Camera.main.transform.localPosition = originalCameraLocalPosition;
     }
-
-    // Ancienne fonction GetCellCenter pas nécessaire telle quelle
-    // void GetCellCenter(Vector3 worldPosition) { ... }
 
     void OnDrawGizmos()
     {
@@ -625,20 +697,5 @@ public class PlayerMovement : MonoBehaviour
                 Gizmos.DrawLine(currentGridCube.transform.position, neighbor.transform.position);
             }
         }
-
-        // Ces Gizmos seront moins pertinents avec le nouveau système de materials, mais peuvent rester pour le debug si besoin
-        /*
-        if (lastSelectedCube != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(new Vector3(lastSelectedCube.transform.position.x, lastSelectedCube.transform.position.y + 0.15f, lastSelectedCube.transform.position.z), new Vector3(cellSize * 1.1f, 0.2f, cellSize * 1.1f));
-        }
-
-        if (lastHoveredCube != null && lastHoveredCube != lastSelectedCube)
-        {
-            Gizmos.color = Color.magenta;
-            Gizmos.DrawWireCube(new Vector3(lastHoveredCube.transform.position.x, lastHoveredCube.transform.position.y + 0.12f, lastHoveredCube.transform.position.z), new Vector3(cellSize * 1.05f, 0.15f, cellSize * 1.05f));
-        }
-        */
     }
 }
