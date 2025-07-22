@@ -1,49 +1,61 @@
 using UnityEngine;
+using System.Collections;
 
 public class PoisonPit : MonoBehaviour
 {
+    // Enum pour définir le type de durée de l'effet
+    public enum ScaleEffectDurationType
+    {
+        Temporary, // L'effet dure un temps défini puis revient à la normale
+        Permanent  // L'effet dure indéfiniment (le joueur reste gros)
+    }
+
     [Tooltip("Le Layer du joueur pour la détection.")]
     public LayerMask playerLayer;
 
-    // Référence à la position de départ de la boule
-    private Vector3 startPosition;
-    // Référence au GameObject de la boule pour la réinitialiser
     private GameObject playerBall;
+    private PlayerMovement playerMovementScript;
 
-    // Ajoutez un champ pour l'effet de dissolution si vous en avez un
-    // public Material dissolveMaterial; // Matériau de dissolution pour la boule
-    // public float dissolveDuration = 1.0f; // Durée de l'effet de dissolution
+    [Header("Paramètres de l'effet PoisonPit (redimensionnement)")]
+    [Tooltip("Type de durée pour l'effet de grossissement du poison.")]
+    public ScaleEffectDurationType durationType = ScaleEffectDurationType.Temporary; // Nouvelle option
+    [Tooltip("Taille que le joueur prendra en tombant dans le PoisonPit.")]
+    public float poisonBoostScale = 2.0f; // Nouvelle taille spécifique au poison
+    [Tooltip("Durée pendant laquelle le joueur reste à cette taille augmentée après être tombé dans le poison (seulement si 'Temporary').")]
+    public float poisonBoostDuration = 5.0f; // Durée de l'effet grossissant du poison
 
     void Start()
     {
-        // Au démarrage, essayez de trouver la boule et sa position de départ.
-        // C'est mieux si la boule est marquée d'un tag "Player".
         playerBall = GameObject.FindGameObjectWithTag("Player");
         if (playerBall != null)
         {
-            startPosition = playerBall.transform.position;
+            playerMovementScript = playerBall.GetComponent<PlayerMovement>();
+            if (playerMovementScript == null)
+            {
+                Debug.LogError("Le script PlayerMovement est introuvable sur le GameObject 'Player' ! Assurez-vous qu'il est attaché.");
+                enabled = false;
+            }
         }
         else
         {
-            Debug.LogError("Le GameObject avec le tag 'Player' n'a pas été trouvé. Assurez-vous que votre boule a le tag 'Player' !");
-            enabled = false; // Désactive ce script si le joueur n'est pas trouvé
+            Debug.LogError("Aucun GameObject avec le tag 'Player' trouvé dans la scène ! Assurez-vous que votre joueur a bien le tag 'Player'.");
+            enabled = false;
         }
     }
 
-    // Cette fonction est appelée lorsqu'un autre Collider entre dans ce Trigger
     void OnTriggerEnter(Collider other)
     {
-        // Vérifie si le collider qui est entré appartient au layer du joueur
+        // Vérifie si l'objet qui est entré dans le trigger est sur le 'playerLayer'
         if (((1 << other.gameObject.layer) & playerLayer) != 0)
         {
-            Debug.Log("Joueur a touché le poison ! Retour à la case de départ.");
-            ResetPlayerToStart(other.gameObject);
+            Debug.Log("Joueur a touché le PoisonPit ! Application de l'effet grossissant...");
+            ApplyPoisonEffect(other.gameObject);
         }
     }
 
-    void ResetPlayerToStart(GameObject player)
+    void ApplyPoisonEffect(GameObject player)
     {
-        // Arrête le mouvement de la boule
+        // Optionnel : Arrêter le mouvement du Rigidbody pour une transition plus douce
         Rigidbody rb = player.GetComponent<Rigidbody>();
         if (rb != null)
         {
@@ -51,53 +63,37 @@ public class PoisonPit : MonoBehaviour
             rb.angularVelocity = Vector3.zero;
         }
 
-        // Lance l'effet de "fondue" (dissolution) si implémenté
-        StartCoroutine(DissolveAndReset(player));
-    }
-
-    System.Collections.IEnumerator DissolveAndReset(GameObject player)
-    {
-        // --- PARTIE EFFET VISUEL DE DISSOLUTION (À ACTIVER SI VOUS AVEZ UN SHADER DE DISSOLUTION) ---
-        /*
-        Renderer playerRenderer = player.GetComponent<Renderer>();
-        if (playerRenderer != null && dissolveMaterial != null)
+        // Si le script PlayerMovement est présent, change la taille du joueur
+        if (playerMovementScript != null)
         {
-            Material originalMaterial = playerRenderer.material; // Sauvegarder le matériau original
-            playerRenderer.material = dissolveMaterial; // Appliquer le matériau de dissolution
+            // Déterminer la durée à passer à ChangePlayerScale en fonction du type de durée choisi
+            float actualDuration = (durationType == ScaleEffectDurationType.Temporary) ? poisonBoostDuration : -1f; // -1f pour "indéfini"
 
-            float timer = 0f;
-            while (timer < dissolveDuration)
-            {
-                timer += Time.deltaTime;
-                // Si votre shader de dissolution a une propriété _DissolveAmount
-                // playerRenderer.material.SetFloat("_DissolveAmount", timer / dissolveDuration);
-                yield return null;
-            }
-            // Réinitialiser la boule après la dissolution complète
+            playerMovementScript.ChangePlayerScale(poisonBoostScale, actualDuration); // Appelle la méthode modifiée
         }
         else
         {
-            Debug.LogWarning("Impossible d'appliquer l'effet de dissolution. Vérifiez si la boule a un Renderer et si un Dissolve Material est assigné.");
-            // Si pas d'effet de dissolution, attendez juste un court instant avant de réinitialiser
-            yield return new WaitForSeconds(0.5f);
+            Debug.LogError("Erreur : PlayerMovement script est null lors de l'application de l'effet PoisonPit.");
         }
-        */
-        // --- FIN PARTIE EFFET VISUEL ---
 
-        // Dans tous les cas, attendez un court instant pour que le joueur réalise ce qui se passe
-        yield return new WaitForSeconds(0.5f); // Temps d'attente avant la réinitialisation effective
+        // Réinitialiser la position du joueur à la dernière position sûre
+        // Nous conservons cette réinitialisation de position quelle que soit la durée de l'effet de grossissement.
+        StartCoroutine(RespawnAfterPoisonEffect(player));
+    }
 
-        // Réinitialise la position de la boule
-        player.transform.position = startPosition;
+    IEnumerator RespawnAfterPoisonEffect(GameObject player)
+    {
+        // Attendre un très court instant pour laisser l'effet visuel de grossissement commencer
+        yield return new WaitForSeconds(0.2f); // Délai avant le respawn
 
-        // Réactive le matériau original si un effet de dissolution a été appliqué
-        /*
-        if (playerRenderer != null && originalMaterial != null)
+        if (playerMovementScript != null)
         {
-            playerRenderer.material = originalMaterial;
+            player.transform.position = playerMovementScript.lastSafePosition;
+            Debug.Log($"Retour à la position sûre : {playerMovementScript.lastSafePosition}");
         }
-        */
-
-        Debug.Log("La boule est revenue à sa position de départ.");
+        else
+        {
+            Debug.LogError("Erreur : PlayerMovement script est null lors de la réinitialisation de la position.");
+        }
     }
 }

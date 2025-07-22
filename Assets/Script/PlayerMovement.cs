@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Collections; // Ajouté pour les Coroutines
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,6 +22,18 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Nombre maximal de cases que le joueur peut parcourir en un seul clic.")]
     public int maxPathLength = 3;
 
+    // --- Paramètres de Redimensionnement ---
+    [Header("Paramètres de Redimensionnement")]
+    [Tooltip("Taille par défaut du joueur (échelle uniforme).")]
+    public float defaultScale = 1.0f;
+    [Tooltip("Taille du joueur lorsqu'il est boosté par un réactif (tuile verte).")]
+    public float boostedScale = 1.5f;
+    [Tooltip("Durée de la transition de taille (agrandissement ou réduction).")]
+    public float scaleTransitionDuration = 0.3f;
+    [Tooltip("Durée par défaut pendant laquelle le joueur reste à taille augmentée (pour les tuiles réactives).")]
+    public float defaultBoostedDuration = 5.0f; 
+    private Coroutine scaleChangeCoroutine; // Pour gérer la coroutine de changement de taille
+
     // --- Références et Grille ---
     [Header("Références Grille")]
     [Tooltip("Le LayerMask des objets de la grille (cubes).")]
@@ -35,11 +47,8 @@ public class PlayerMovement : MonoBehaviour
 
     // --- Visualisation de la Sélection ---
     [Header("Visualisation de la Sélection")]
-    [Tooltip("Le Material à appliquer au cube sélectionné (clic).")]
     public Material selectedCellMaterial;
-    [Tooltip("Le Material à appliquer au cube survolé (hover).")]
     public Material hoveredCellMaterial;
-    [Tooltip("Le Material à appliquer aux cases hors de portée du mouvement.")]
     public Material outOfRangeCellMaterial;
 
     private Material defaultCellMaterial;
@@ -48,44 +57,38 @@ public class PlayerMovement : MonoBehaviour
 
     // --- Debug/Visualisation du Chemin ---
     [Header("Visualisation du Chemin")]
-    [Tooltip("Indique si le chemin doit être affiché par le LineRenderer.")]
     public bool showPath = true;
-    [Tooltip("Largeur de la ligne de rendu du chemin.")]
     public float lineWidth = 0.1f;
 
     // --- Effet de Vibration ---
     [Header("Effets de Feedback")]
-    [Tooltip("Durée de la vibration de l'écran.")]
-    public float shakeDuration = 0.1f; // Courte durée pour une vibration rapide
-    [Tooltip("Intensité de la vibration de l'écran.")]
-    public float shakeMagnitude = 0.1f; // Petite valeur pour une vibration subtile
+    public float shakeDuration = 0.1f;
+    public float shakeMagnitude = 0.1f;
 
     // --- NOUVEAU: Paramètres des Plaques Tombantes ---
     [Header("Plaques Tombantes")]
-    [Tooltip("Le tag des plateformes qui doivent tomber au contact.")]
     public string fallingPlatformTag = "FallingPlatform";
-    [Tooltip("Délai avant que la plateforme ne commence à tomber après contact.")]
     public float fallDelay = 0.5f;
-    [Tooltip("Durée de la chute de la plateforme.")]
     public float fallDuration = 1.5f;
-    [Tooltip("Distance de chute de la plateforme.")]
-    public float fallDistance = 10f; // Distance vers le bas pour simuler la chute
+    public float fallDistance = 10f;
 
-    private Rigidbody rb;
-    private LineRenderer lr;
-    private List<Vector3> path = new List<Vector3>();
-    private int currentPathIndex = 0;
+    public Rigidbody rb;
+    public LineRenderer lr;
+    public List<Vector3> path = new List<Vector3>();
+    public int currentPathIndex = 0;
     private Vector3 startJumpPosition;
     private Vector3 targetJumpPosition;
     private float jumpTimer = 0f;
     private bool isJumping = false;
-    private bool pathCalculated = false;
+    public bool pathCalculated = false;
 
-    private GameObject currentGridCube;
+    public GameObject currentGridCube;
     private Dictionary<Vector3, GameObject> gridPositionsToCubes;
 
-    // Pour suivre l'état des matériaux des cellules quand on les survole/sélectionne
     private Dictionary<GameObject, Material> originalCellMaterials = new Dictionary<GameObject, Material>();
+
+    // Variable pour stocker la dernière position sûre
+    public Vector3 lastSafePosition;
 
     void Awake()
     {
@@ -103,6 +106,20 @@ public class PlayerMovement : MonoBehaviour
         if (currentGridCube != null)
         {
             transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
+            // INITIALISER lastSafePosition à la position de départ
+            // Assurez-vous que le cube de départ n'est pas un PoisonPit !
+            if (!currentGridCube.CompareTag("PoisonPit"))
+            {
+                lastSafePosition = transform.position;
+            }
+            else
+            {
+                Debug.LogError("Le joueur démarre sur un PoisonPit ! Veuillez repositionner le joueur ou le PoisonPit.");
+            }
+
+            // Initialiser la taille par défaut du joueur
+            transform.localScale = Vector3.one * defaultScale;
+
             Renderer cubeRenderer = currentGridCube.GetComponent<Renderer>();
             if (cubeRenderer != null && cubeRenderer.sharedMaterial != null)
             {
@@ -118,7 +135,6 @@ public class PlayerMovement : MonoBehaviour
             Debug.LogError("Le joueur n'est pas placé sur un cube de la grille au démarrage !");
         }
 
-        // Vérification des materials
         if (selectedCellMaterial == null) Debug.LogWarning("Le Material de sélection n'est pas assigné !");
         if (hoveredCellMaterial == null) Debug.LogWarning("Le Material de survol n'est pas assigné !");
         if (outOfRangeCellMaterial == null) Debug.LogWarning("Le Material 'hors de portée' n'est pas assigné !");
@@ -126,47 +142,53 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        HandleHover();
-        HandleInput();
+        // Seulement gérer le survol et l'input si le script est activé (i.e. non désactivé par PoisonPit)
+        if (enabled)
+        {
+            HandleHover();
+            HandleInput();
+        }
         UpdatePathVisualization();
     }
-
+    
     void FixedUpdate()
     {
-        if (isJumping)
+        // Seulement effectuer les sauts si le script est activé
+        if (enabled)
         {
-            PerformJump();
-        }
-        else if (pathCalculated && currentPathIndex < path.Count)
-        {
-            StartNextJump();
-        }
-        else if (pathCalculated && currentPathIndex >= path.Count)
-        {
-            pathCalculated = false;
-            path.Clear();
-            lr.positionCount = 0;
-            rb.linearVelocity = Vector3.zero;
-            transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
-            ResetAllCellMaterials(); // Réinitialiser tous les matériaux une fois le chemin terminé
+            if (isJumping)
+            {
+                PerformJump();
+            }
+            else if (pathCalculated && currentPathIndex < path.Count)
+            {
+                StartNextJump();
+            }
+            else if (pathCalculated && currentPathIndex >= path.Count)
+            {
+                pathCalculated = false;
+                path.Clear();
+                lr.positionCount = 0;
+                rb.linearVelocity = Vector3.zero;
+                transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
+                ResetAllCellMaterials();
+            }
         }
     }
 
     void InitializeGridCubes()
     {
         gridPositionsToCubes = new Dictionary<Vector3, GameObject>();
-        // Adaptez le OverlapSphere à la taille de votre grille
-        Collider[] gridColliders = Physics.OverlapSphere(Vector3.zero, 500f, gridLayer); 
+        Collider[] gridColliders = Physics.OverlapSphere(Vector3.zero, 500f, gridLayer);
 
         foreach (Collider col in gridColliders)
         {
-            if (((1 << col.gameObject.layer) & obstacleLayer) == 0)
+            if (((1 << col.gameObject.layer) & obstacleLayer) == 0) 
             {
                 Vector3 cubePos = new Vector3(Mathf.Round(col.transform.position.x * 1000) / 1000, col.transform.position.y, Mathf.Round(col.transform.position.z * 1000) / 1000);
                 if (!gridPositionsToCubes.ContainsKey(cubePos))
                 {
                     gridPositionsToCubes.Add(cubePos, col.gameObject);
-                    // Sauvegarde le matériau original de chaque cube lors de l'initialisation
                     Renderer renderer = col.gameObject.GetComponent<Renderer>();
                     if (renderer != null && renderer.sharedMaterial != null && !originalCellMaterials.ContainsKey(col.gameObject))
                     {
@@ -178,7 +200,7 @@ public class PlayerMovement : MonoBehaviour
         currentGridCube = FindNearestGridCube(transform.position);
     }
 
-    GameObject FindNearestGridCube(Vector3 position)
+    public GameObject FindNearestGridCube(Vector3 position)
     {
         GameObject nearestCube = null;
         float minDistance = float.MaxValue;
@@ -202,7 +224,6 @@ public class PlayerMovement : MonoBehaviour
 
     void HandleHover()
     {
-        // Réinitialise tous les matériaux pour les cases précédemment survolées/hors de portée
         ResetAllCellMaterials();
 
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -213,21 +234,31 @@ public class PlayerMovement : MonoBehaviour
         {
             GameObject potentialHoveredCube = hit.collider.gameObject;
 
-            // NOUVEAU: Vérifie la validité du chemin pour le survol
+            if (potentialHoveredCube.CompareTag("PoisonPit"))
+            {
+                Renderer cubeRenderer = potentialHoveredCube.GetComponent<Renderer>();
+                if (cubeRenderer != null && outOfRangeCellMaterial != null)
+                {
+                    if (!originalCellMaterials.ContainsKey(potentialHoveredCube))
+                    {
+                        originalCellMaterials.Add(potentialHoveredCube, cubeRenderer.sharedMaterial);
+                    }
+                    cubeRenderer.material = outOfRangeCellMaterial; 
+                }
+                return;
+            }
+
             List<GameObject> tempPath = CalculatePathForHover(currentGridCube, potentialHoveredCube);
 
             if (tempPath != null && tempPath.Count > 0 && tempPath.Count <= maxPathLength)
             {
                 currentHoveredCube = potentialHoveredCube;
             }
-            // MODIFICATION: Si la case est un obstacle ou hors de portée, change son material en 'outOfRangeCellMaterial'
             else if (tempPath == null || tempPath.Count > maxPathLength)
             {
-                // Si c'est un obstacle, ou hors de portée, applique le material rouge transparent
                 Renderer cubeRenderer = potentialHoveredCube.GetComponent<Renderer>();
                 if (cubeRenderer != null && outOfRangeCellMaterial != null)
                 {
-                    // Sauvegarde l'original avant de changer
                     if (!originalCellMaterials.ContainsKey(potentialHoveredCube))
                     {
                         originalCellMaterials.Add(potentialHoveredCube, cubeRenderer.sharedMaterial);
@@ -237,7 +268,6 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        // Applique le material de survol si la case est valide et survolée
         if (currentHoveredCube != null && currentHoveredCube != lastSelectedCube)
         {
             Renderer cubeRenderer = currentHoveredCube.GetComponent<Renderer>();
@@ -253,10 +283,9 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            lastHoveredCube = null; // Aucune case valide survolée
+            lastHoveredCube = null;
         }
 
-        // Réapplique le material de sélection si une case est déjà sélectionnée
         if (lastSelectedCube != null)
         {
             Renderer selectedRenderer = lastSelectedCube.GetComponent<Renderer>();
@@ -268,34 +297,33 @@ public class PlayerMovement : MonoBehaviour
     }
 
 
-    void ResetAllCellMaterials()
+    public void ResetAllCellMaterials()
     {
         foreach (var entry in originalCellMaterials)
         {
-            if (entry.Key != null) // Assurez-vous que l'objet n'a pas été détruit
+            if (entry.Key != null)
             {
                 Renderer renderer = entry.Key.GetComponent<Renderer>();
-                if (renderer != null && renderer.sharedMaterial != entry.Value) // Change seulement si le material n'est pas déjà l'original
+                if (renderer != null && renderer.sharedMaterial != entry.Value)
                 {
                     renderer.material = entry.Value;
                 }
             }
         }
-        originalCellMaterials.Clear(); // Videz le dictionnaire après réinitialisation
-        
-        // S'assurer que les cubes sélectionnés et survolés sont aussi réinitialisés
+        originalCellMaterials.Clear();
+
         if (lastSelectedCube != null)
         {
             Renderer selectedRenderer = lastSelectedCube.GetComponent<Renderer>();
-            if (selectedRenderer != null && selectedRenderer.material != selectedCellMaterial) // Seulement si pas déjà sélectionné
+            if (selectedRenderer != null && selectedRenderer.material != selectedCellMaterial)
             {
-                if (originalCellMaterials.ContainsKey(lastSelectedCube)) // Réinitialise à l'original si dispo
+                if (originalCellMaterials.ContainsKey(lastSelectedCube))
                     selectedRenderer.material = originalCellMaterials[lastSelectedCube];
                 else
-                    selectedRenderer.material = defaultCellMaterial; // Sinon au défaut
+                    selectedRenderer.material = defaultCellMaterial;
             }
         }
-        lastSelectedCube = null; // Réinitialise pour éviter des problèmes de référence
+        lastSelectedCube = null;
         lastHoveredCube = null;
     }
 
@@ -307,32 +335,38 @@ public class PlayerMovement : MonoBehaviour
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            // Le raycast de clic doit aussi ignorer les obstacles pour la sélection valide
             if (Physics.Raycast(ray, out hit, Mathf.Infinity, gridLayer))
             {
                 GameObject targetCube = hit.collider.gameObject;
 
-                // NOUVEAU: Vérifie si la cible est un obstacle ou hors de portée
-                List<GameObject> tempPath = CalculatePathForHover(currentGridCube, targetCube);
+                List<GameObject> tempPath = GetShortestPath(currentGridCube, targetCube);
 
-                if (((1 << targetCube.layer) & obstacleLayer) != 0 || tempPath == null || tempPath.Count == 0 || tempPath.Count > maxPathLength)
+                bool isTargetPoisonPit = targetCube.CompareTag("PoisonPit");
+
+                if (((1 << targetCube.layer) & obstacleLayer) != 0 || tempPath == null || tempPath.Count == 0 || (tempPath.Count > maxPathLength && !isTargetPoisonPit))
                 {
-                    Debug.Log("Cible invalide (obstacle ou chemin trop long) !");
-                    StartCoroutine(ShakeScreen()); // Faire vibrer l'écran
-                    ResetAllCellMaterials(); // Réinitialiser visuel
+                    Debug.Log("Cible invalide (obstacle, chemin trop long, ou inaccessible) !");
+                    StartCoroutine(ShakeScreen());
+                    ResetAllCellMaterials();
                     return;
                 }
+                
+                if (isTargetPoisonPit)
+                {
+                    Debug.Log("Attention: Vous vous déplacez vers un PoisonPit !");
+                    StartCoroutine(ShakeScreen());
+                }
 
-                ResetAllCellMaterials(); // Réinitialise les matériaux des cellules hors portée avant de sélectionner
+
+                ResetAllCellMaterials();
                 UpdateSelectedCubeVisual(targetCube);
-                CalculatePathForMovement(targetCube); // Utilise la nouvelle fonction de calcul de chemin
+                CalculatePathForMovement(targetCube);
             }
         }
     }
 
     void UpdateSelectedCubeVisual(GameObject newSelectedCube)
     {
-        // Avant de changer la sélection, réinitialise l'ancienne sélection à son matériau original
         if (lastSelectedCube != null && originalCellMaterials.ContainsKey(lastSelectedCube))
         {
             Renderer oldRenderer = lastSelectedCube.GetComponent<Renderer>();
@@ -341,30 +375,30 @@ public class PlayerMovement : MonoBehaviour
 
         if (newSelectedCube != null)
         {
+            if (newSelectedCube.CompareTag("PoisonPit"))
+            {
+                lastSelectedCube = null;
+                return;
+            }
+
             Renderer newCubeRenderer = newSelectedCube.GetComponent<Renderer>();
             if (newCubeRenderer != null && selectedCellMaterial != null)
             {
-                // Sauvegarde le matériau original si ce n'est pas déjà fait
                 if (!originalCellMaterials.ContainsKey(newSelectedCube))
                 {
                     originalCellMaterials.Add(newSelectedCube, newCubeRenderer.sharedMaterial);
                 }
+
                 newCubeRenderer.material = selectedCellMaterial;
                 lastSelectedCube = newSelectedCube;
             }
         }
         else
         {
-            lastSelectedCube = null; // Aucune sélection valide
+            lastSelectedCube = null;
         }
     }
 
-    void ResetLastSelectedCubeMaterial()
-    {
-        // C'est maintenant géré par ResetAllCellMaterials et UpdateSelectedCubeVisual
-    }
-
-    // Ancienne fonction CalculatePath renommée et modifiée pour le mouvement
     void CalculatePathForMovement(GameObject targetCube)
     {
         if (isJumping || pathCalculated || targetCube == null || currentGridCube == null) return;
@@ -378,12 +412,10 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        // Utilise la nouvelle fonction de calcul de chemin pour obtenir le chemin final
         List<GameObject> calculatedGameObjectsPath = GetShortestPath(currentGridCube, targetCube);
 
-        if (calculatedGameObjectsPath != null && calculatedGameObjectsPath.Count > 0 && calculatedGameObjectsPath.Count <= maxPathLength)
+        if (calculatedGameObjectsPath != null && calculatedGameObjectsPath.Count > 0)
         {
-            // Convertit le chemin de GameObjects en Vector3 pour le LineRenderer et le mouvement
             path = calculatedGameObjectsPath.Select(cube => cube.transform.position).ToList();
             pathCalculated = true;
         }
@@ -392,24 +424,23 @@ public class PlayerMovement : MonoBehaviour
             Debug.LogWarning("Chemin invalide pour le mouvement (trop long ou obstacle non détecté plus tôt) !");
             pathCalculated = false;
             ResetAllCellMaterials();
-            StartCoroutine(ShakeScreen()); // Faire vibrer l'écran si le chemin est quand même invalide à ce stade
+            StartCoroutine(ShakeScreen());
         }
     }
 
-    // Nouvelle fonction pour calculer le chemin (réutilisable pour le survol et le clic)
     List<GameObject> GetShortestPath(GameObject start, GameObject target)
     {
         if (start == null || target == null) return null;
 
         Queue<GameObject> queue = new Queue<GameObject>();
         Dictionary<GameObject, GameObject> cameFrom = new Dictionary<GameObject, GameObject>();
-        Dictionary<GameObject, int> distance = new Dictionary<GameObject, int>(); // Pour la limite de pas
+        Dictionary<GameObject, int> distance = new Dictionary<GameObject, int>();
         HashSet<GameObject> visited = new HashSet<GameObject>();
 
         queue.Enqueue(start);
         visited.Add(start);
         cameFrom[start] = null;
-        distance[start] = 0; // Distance du point de départ
+        distance[start] = 0;
 
         GameObject current = null;
         bool foundPath = false;
@@ -420,34 +451,48 @@ public class PlayerMovement : MonoBehaviour
 
             if (current == target)
             {
-                foundPath = true;
+                // Si la cible est un PoisonPit, le chemin peut être plus long que maxPathLength
+                // Nous permettons d'atteindre un PoisonPit même s'il est au-delà du maxPathLength "normal".
+                // Cependant, si la distance est trop grande *et* ce n'est PAS un PoisonPit, alors ce n'est pas un chemin valide.
+                // La logique précédente qui mettait foundPath à false si PoisonPit et distance > maxPathLength était incorrecte pour l'intention de l'utilisateur.
+                foundPath = true; // Si on arrive à la cible, le chemin est trouvé. La longueur est vérifiée après.
                 break;
             }
 
-            // Si la distance est déjà trop grande pour atteindre la cible, ne pas explorer plus loin
-            // La condition 'target != current' permet au chemin d'inclure la case 'maxPathLength' elle-même
-            if (distance[current] >= maxPathLength && target != current) 
+            // Si la distance actuelle est déjà maxPathLength et que la cible n'est PAS un PoisonPit
+            // alors nous ne devrions pas explorer davantage depuis ce nœud pour les chemins "normaux".
+            if (distance[current] >= maxPathLength && !target.CompareTag("PoisonPit"))
             {
                 continue;
             }
 
             foreach (GameObject neighbor in GetNeighbors(current))
             {
+                if (((1 << neighbor.layer) & obstacleLayer) != 0) continue;
+
                 if (!visited.Contains(neighbor))
                 {
                     visited.Add(neighbor);
                     queue.Enqueue(neighbor);
                     cameFrom[neighbor] = current;
-                    distance[neighbor] = distance[current] + 1; // Incrémente la distance
+                    distance[neighbor] = distance[current] + 1;
 
-                    // Si le voisin est la cible et sa distance est > maxPathLength, on ne le considère pas valide
-                    if (neighbor == target && distance[neighbor] > maxPathLength)
+                    // Condition pour les tuiles non-PoisonPit : si le chemin est trop long, on ne le prend pas
+                    // Si on atteint la cible et que la distance dépasse maxPathLength *ET* ce n'est pas un PoisonPit
+                    if (neighbor == target && distance[neighbor] > maxPathLength && !neighbor.CompareTag("PoisonPit"))
                     {
-                        foundPath = false; // Le chemin vers la cible est trop long
-                        queue.Clear(); // Vider la queue pour ne pas continuer à trouver ce chemin invalide
+                        foundPath = false; // Ce chemin vers cette cible est invalide car trop long
+                        queue.Clear(); // Vider la queue pour arrêter la recherche
                         break; // Sortir de la boucle des voisins
                     }
                 }
+            }
+            // Si la queue est vide et on n'a pas atteint la cible, le chemin n'a pas été trouvé.
+            // La condition précédente pour PoisonPit ici était redondante ou mal placée.
+            if (queue.Count == 0 && current != target)
+            {
+                foundPath = false; // Pas de chemin valide trouvé.
+                break;
             }
         }
 
@@ -462,20 +507,29 @@ public class PlayerMovement : MonoBehaviour
             }
             pathObjects.Reverse();
 
-            // S'assurer que le premier point du chemin n'est pas le cube de départ.
+            // S'assurer que le chemin n'inclut pas le point de départ
             if (pathObjects.Count > 0 && pathObjects[0] == start)
             {
                 pathObjects.RemoveAt(0);
             }
+
+            // Dernière vérification de la longueur du chemin pour les non-PoisonPits
+            // Si le chemin est trop long ET que la cible n'est PAS un PoisonPit, alors le chemin est invalide.
+            if (pathObjects.Count > maxPathLength && !target.CompareTag("PoisonPit"))
+            {
+                return null;
+            }
+
             return pathObjects;
         }
-        return null; // Aucun chemin valide trouvé ou chemin trop long
+        return null;
     }
 
-    // Nouvelle fonction pour calculer le chemin pour le survol (similaire mais ne modifie pas les variables de mouvement)
     List<GameObject> CalculatePathForHover(GameObject startCube, GameObject targetCube)
     {
-        // Si la cible est un obstacle, retourne null
+        // Un PoisonPit ne devrait pas être affiché comme une cible valide pour le survol
+        if (targetCube.CompareTag("PoisonPit")) return null;
+
         if (((1 << targetCube.layer) & obstacleLayer) != 0) return null;
 
         List<GameObject> tempPath = GetShortestPath(startCube, targetCube);
@@ -512,7 +566,6 @@ public class PlayerMovement : MonoBehaviour
         jumpTimer = 0f;
         startJumpPosition = transform.position;
         targetJumpPosition = path[currentPathIndex];
-        // ResetAllCellMaterials(); // Géré à la fin du mouvement
     }
 
     void PerformJump()
@@ -529,11 +582,40 @@ public class PlayerMovement : MonoBehaviour
             currentGridCube = FindNearestGridCube(transform.position);
             if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
 
-            currentPathIndex++;
+            // Si la case sur laquelle on vient d'atterrir est un PoisonPit,
+            // alors on ne met PAS à jour lastSafePosition et on avance DÉJÀ
+            // à l'index suivant du chemin pour déclencher le prochain saut immédiatement.
+            // Le grossissement est géré par le PoisonPit lui-même via OnTriggerEnter.
+            if (currentGridCube != null && currentGridCube.CompareTag("PoisonPit"))
+            {
+                Debug.Log("Player landed on a PoisonPit (transit). Moving to next path segment immediately.");
+                currentPathIndex++;
+            }
+            else // Sinon, si c'est une case normale (non-poison) ou un réactif
+            {
+                currentPathIndex++;
+                lastSafePosition = transform.position; // Mettre à jour la lastSafePosition
+                Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
+
+                // Si la case sur laquelle le joueur atterrit a le tag "ReactiveTile"
+                if (currentGridCube != null && currentGridCube.CompareTag("ReactiveTile")) // Assurez-vous d'avoir ce tag sur vos tuiles vertes
+                {
+                    Debug.Log("Player landed on a ReactiveTile. Increasing player size.");
+                    // Appel de la méthode de changement de taille avec la durée par défaut pour les réactifs
+                    ChangePlayerScale(boostedScale, defaultBoostedDuration);
+                }
+            }
+
 
             if (currentPathIndex >= path.Count)
             {
-                // ResetAllCellMaterials(); // Géré dans FixedUpdate quand pathCalculated devient false
+                pathCalculated = false;
+                path.Clear();
+                lr.positionCount = 0;
+                rb.linearVelocity = Vector3.zero;
+                transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
+                ResetAllCellMaterials();
+                Debug.Log("Path completed.");
             }
         }
         else
@@ -550,6 +632,58 @@ public class PlayerMovement : MonoBehaviour
             rb.MovePosition(new Vector3(currentPosHorizontal.x, yInterpolated + yParabolaOffset, currentPosHorizontal.z));
         }
     }
+
+    // --- NOUVELLES/MODIFIÉES MÉTHODES POUR LA TAILLE DE LA BOULE ---
+
+    // Méthode publique pour changer la taille, maintenant avec une durée paramétrable.
+    // Une 'duration' de -1f signifie "indéfiniment".
+    public void ChangePlayerScale(float targetScale, float duration)
+    {
+        // Arrête toute coroutine de changement de taille en cours
+        if (scaleChangeCoroutine != null)
+        {
+            StopCoroutine(scaleChangeCoroutine);
+        }
+        // Démarre la nouvelle coroutine de changement de taille avec la durée spécifiée
+        scaleChangeCoroutine = StartCoroutine(ScalePlayerOverTime(targetScale, duration));
+    }
+
+    // Coroutine modifiée pour inclure une durée de maintien paramétrable et la gestion de "indéfini"
+    private IEnumerator ScalePlayerOverTime(float targetScale, float holdDuration)
+    {
+        Vector3 initialScale = transform.localScale;
+        Vector3 finalScale = Vector3.one * targetScale;
+        float elapsed = 0f;
+
+        // Transition d'agrandissement/réduction
+        while (elapsed < scaleTransitionDuration)
+        {
+            transform.localScale = Vector3.Lerp(initialScale, finalScale, elapsed / scaleTransitionDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        transform.localScale = finalScale; // S'assurer d'atteindre la taille cible exacte
+
+        // Si la durée de maintien est positive (non -1f), alors on attend et on revient à la taille par défaut
+        if (holdDuration >= 0f) // IMPORTANT : Vérifier si ce n'est PAS un effet permanent
+        {
+            yield return new WaitForSeconds(holdDuration);
+            // Revenir à la taille par défaut
+            ChangePlayerScale(defaultScale, scaleTransitionDuration); // Utiliser la transitionDuration pour le retour
+        }
+        // Si holdDuration est -1f, la coroutine se termine ici et la taille reste à 'finalScale' indéfiniment.
+        // On ne met pas scaleChangeCoroutine = null; ici si c'est permanent, car il n'y a pas de fin "naturelle"
+        // de la coroutine pour revenir à la taille normale. Si on voulait l'arrêter manuellement plus tard,
+        // la référence existerait toujours. Pour des effets permanents, c'est généralement OK.
+        // Si vous avez besoin de forcer un retour à la normale pour un effet permanent (par exemple, si le joueur
+        // touche un autre objet qui annule l'effet), vous devrez appeler ChangePlayerScale(defaultScale, ...) manuellement.
+        if (holdDuration >= 0f) // Seulement si l'effet n'est PAS permanent
+        {
+            scaleChangeCoroutine = null; // La coroutine est terminée
+        }
+    }
+
+    // --- FIN NOUVELLES MÉTHODES POUR LA TAILLE DE LA BOULE ---
 
     void UpdatePathVisualization()
     {
@@ -568,72 +702,49 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // NOUVEAU: Détection de collision pour les plateformes qui tombent
     void OnCollisionEnter(Collision collision)
     {
-        // Vérifie si l'objet avec lequel la boule est entrée en collision a le tag "FallingPlatform"
         if (collision.gameObject.CompareTag(fallingPlatformTag))
         {
-            // Vérifie si la boule a atterri sur la plateforme (contact par le haut)
-            // C'est une vérification simple. Si la plateforme est très inclinée, cela pourrait être imprécis.
-            // Une autre option est de vérifier la direction de la normale de la collision.
-            if (transform.position.y > collision.gameObject.transform.position.y - 0.1f) // La boule est légèrement au-dessus ou au même niveau
+            if (transform.position.y > collision.gameObject.transform.position.y - 0.1f)
             {
-                // Démarre la coroutine pour faire tomber la plateforme
                 StartCoroutine(FallPlatform(collision.gameObject));
             }
         }
     }
 
-    // NOUVEAU: Coroutine pour faire tomber une plateforme
     IEnumerator FallPlatform(GameObject platform)
     {
-        // On peut ajouter un mécanisme pour éviter de déclencher la chute plusieurs fois
-        // Par exemple, un booléen sur un script de la plateforme, ou vérifier si elle a déjà été désactivée.
-        if (!platform.activeSelf) // Si elle est déjà désactivée, ne fait rien
+        if (!platform.activeSelf)
         {
             yield break;
         }
 
-        yield return new WaitForSeconds(fallDelay); // Attendre le délai avant de tomber
+        yield return new WaitForSeconds(fallDelay);
 
         Vector3 startPos = platform.transform.position;
         Vector3 endPos = platform.transform.position - Vector3.up * fallDistance;
         float elapsed = 0f;
 
-        // On peut désactiver le collider de la plateforme pour éviter de nouvelles interactions
-        // et pour que la boule puisse tomber si la plaque est le seul support
         Collider platformCollider = platform.GetComponent<Collider>();
         if (platformCollider != null)
         {
             platformCollider.enabled = false;
         }
 
-        // On peut aussi enlever le Rigidbody si la plateforme en avait un et qu'il gêne
-        // Rigidbody platformRb = platform.GetComponent<Rigidbody>();
-        // if (platformRb != null) platformRb.isKinematic = true; // Empêche la physique de l'affecter pendant la chute contrôlée
-
         while (elapsed < fallDuration)
         {
             platform.transform.position = Vector3.Lerp(startPos, endPos, elapsed / fallDuration);
             elapsed += Time.deltaTime;
-            yield return null; // Attendre la prochaine frame
+            yield return null;
         }
 
-        platform.transform.position = endPos; // S'assurer qu'elle arrive bien à la position finale
-        // Optionnel : Détruire la plateforme ou la désactiver après la chute
-        // Destroy(platform); // Si elle doit disparaître définitivement
-        platform.SetActive(false); // La désactiver pour qu'elle ne soit plus visible ou interagit
+        platform.transform.position = endPos;
+        platform.SetActive(false);
     }
 
-
-    // Nouvelle coroutine pour faire vibrer l'écran
     System.Collections.IEnumerator ShakeScreen()
     {
-        // Sauvegarder la position originale de la caméra
-        // Si la caméra est un enfant du joueur, vous voudrez peut-être secouer la caméra elle-même
-        // ou un parent temporaire, plutôt que la position locale par rapport à son propre parent.
-        // Assurez-vous que Camera.main.transform.localPosition est la bonne référence.
         Vector3 originalCameraLocalPosition = Camera.main.transform.localPosition;
         float elapsed = 0f;
 
@@ -645,10 +756,9 @@ public class PlayerMovement : MonoBehaviour
             Camera.main.transform.localPosition = originalCameraLocalPosition + new Vector3(x, y, 0);
 
             elapsed += Time.deltaTime;
-            yield return null; // Attend la prochaine frame
+            yield return null;
         }
 
-        // Réinitialiser la position de la caméra après la vibration
         Camera.main.transform.localPosition = originalCameraLocalPosition;
     }
 
@@ -671,31 +781,15 @@ public class PlayerMovement : MonoBehaviour
             Gizmos.DrawWireCube(new Vector3(currentGridCube.transform.position.x, currentGridCube.transform.position.y + 0.1f, currentGridCube.transform.position.z), new Vector3(cellSize, 0.1f, cellSize));
         }
 
-        if (showPath && path.Count > 0)
+        if (showPath && pathCalculated && path.Count > 0)
         {
-            Gizmos.color = Color.blue;
-            if (currentGridCube != null)
+            Gizmos.color = Color.green; // Couleur pour le chemin
+            for (int i = 0; i < path.Count - 1; i++)
             {
-                Gizmos.DrawLine(currentGridCube.transform.position + Vector3.up * (0.1f + verticalOffsetOnGround), path[0] + Vector3.up * (0.1f + verticalOffsetOnGround));
+                Gizmos.DrawLine(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), path[i+1] + Vector3.up * (0.1f + verticalOffsetOnGround));
+                Gizmos.DrawSphere(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), 0.05f);
             }
-
-            for (int i = 0; i < path.Count; i++)
-            {
-                Gizmos.DrawWireCube(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), new Vector3(cellSize, 0.1f, cellSize));
-                if (i > 0)
-                {
-                    Gizmos.DrawLine(path[i - 1] + Vector3.up * (0.1f + verticalOffsetOnGround), path[i] + Vector3.up * (0.1f + verticalOffsetOnGround));
-                }
-            }
-        }
-
-        Gizmos.color = Color.green; // Connexions entre voisins
-        if (currentGridCube != null)
-        {
-            foreach (GameObject neighbor in GetNeighbors(currentGridCube))
-            {
-                Gizmos.DrawLine(currentGridCube.transform.position, neighbor.transform.position);
-            }
+            Gizmos.DrawSphere(path[path.Count - 1] + Vector3.up * (0.1f + verticalOffsetOnGround), 0.05f); // Dernier point
         }
     }
 }
