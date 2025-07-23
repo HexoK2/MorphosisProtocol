@@ -28,6 +28,8 @@ public class PlayerMovement : MonoBehaviour
     public float defaultScale = 1.0f;
     [Tooltip("Taille du joueur lorsqu'il est boosté par un réactif (tuile verte).")]
     public float boostedScale = 1.5f;
+    [Tooltip("Taille du joueur lorsqu'il est réduit par un réactif (tuile jaune).")]
+    public float shrunkScale = 0.5f; // NOUVEAU: Taille pour les tuiles de rétrécissement
     [Tooltip("Durée de la transition de taille (agrandissement ou réduction).")]
     public float scaleTransitionDuration = 0.3f;
     [Tooltip("Durée par défaut pendant laquelle le joueur reste à taille augmentée (pour les tuiles réactives).")]
@@ -71,6 +73,11 @@ public class PlayerMovement : MonoBehaviour
     public float fallDelay = 0.5f;
     public float fallDuration = 1.5f;
     public float fallDistance = 10f;
+
+    // --- NOUVEAU: Gestion de l'équipement ---
+    [Header("Gestion de l'équipement")]
+    [Tooltip("Indique si le joueur a actuellement une torche. Cochez cette case pour simuler la possession de la torche.")]
+    public bool hasTorch = false; // <<< C'EST LA NOUVELLE VARIABLE ICI !
 
     public Rigidbody rb;
     public LineRenderer lr;
@@ -234,7 +241,8 @@ public class PlayerMovement : MonoBehaviour
         {
             GameObject potentialHoveredCube = hit.collider.gameObject;
 
-            if (potentialHoveredCube.CompareTag("PoisonPit"))
+            // Vérifier si c'est un PoisonPit ou un ShrinkTile pour l'affichage "hors de portée" au survol
+            if (potentialHoveredCube.CompareTag("PoisonPit") || potentialHoveredCube.CompareTag("ShrinkTile")) // Ajout de ShrinkTile
             {
                 Renderer cubeRenderer = potentialHoveredCube.GetComponent<Renderer>();
                 if (cubeRenderer != null && outOfRangeCellMaterial != null)
@@ -341,9 +349,10 @@ public class PlayerMovement : MonoBehaviour
 
                 List<GameObject> tempPath = GetShortestPath(currentGridCube, targetCube);
 
-                bool isTargetPoisonPit = targetCube.CompareTag("PoisonPit");
+                // Vérifier si la cible est un PoisonPit ou un ShrinkTile
+                bool isTargetSpecialTile = targetCube.CompareTag("PoisonPit") || targetCube.CompareTag("ShrinkTile"); // Ajout de ShrinkTile
 
-                if (((1 << targetCube.layer) & obstacleLayer) != 0 || tempPath == null || tempPath.Count == 0 || (tempPath.Count > maxPathLength && !isTargetPoisonPit))
+                if (((1 << targetCube.layer) & obstacleLayer) != 0 || tempPath == null || tempPath.Count == 0 || (tempPath.Count > maxPathLength && !isTargetSpecialTile))
                 {
                     Debug.Log("Cible invalide (obstacle, chemin trop long, ou inaccessible) !");
                     StartCoroutine(ShakeScreen());
@@ -351,9 +360,9 @@ public class PlayerMovement : MonoBehaviour
                     return;
                 }
                 
-                if (isTargetPoisonPit)
+                if (isTargetSpecialTile)
                 {
-                    Debug.Log("Attention: Vous vous déplacez vers un PoisonPit !");
+                    Debug.Log("Attention: Vous vous déplacez vers une tuile spéciale !");
                     StartCoroutine(ShakeScreen());
                 }
 
@@ -375,7 +384,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (newSelectedCube != null)
         {
-            if (newSelectedCube.CompareTag("PoisonPit"))
+            // Ne pas sélectionner visuellement les tuiles spéciales
+            if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile")) // Ajout de ShrinkTile
             {
                 lastSelectedCube = null;
                 return;
@@ -451,17 +461,15 @@ public class PlayerMovement : MonoBehaviour
 
             if (current == target)
             {
-                // Si la cible est un PoisonPit, le chemin peut être plus long que maxPathLength
-                // Nous permettons d'atteindre un PoisonPit même s'il est au-delà du maxPathLength "normal".
-                // Cependant, si la distance est trop grande *et* ce n'est PAS un PoisonPit, alors ce n'est pas un chemin valide.
-                // La logique précédente qui mettait foundPath à false si PoisonPit et distance > maxPathLength était incorrecte pour l'intention de l'utilisateur.
-                foundPath = true; // Si on arrive à la cible, le chemin est trouvé. La longueur est vérifiée après.
+                // Si la cible est un PoisonPit ou ShrinkTile, le chemin peut être plus long que maxPathLength
+                // Nous permettons d'atteindre une tuile spéciale même si elle est au-delà du maxPathLength "normal".
+                // Cependant, si la distance est trop grande *et* ce n'est PAS une tuile spéciale, alors ce n'est pas un chemin valide.
+                foundPath = true; 
                 break;
             }
 
-            // Si la distance actuelle est déjà maxPathLength et que la cible n'est PAS un PoisonPit
-            // alors nous ne devrions pas explorer davantage depuis ce nœud pour les chemins "normaux".
-            if (distance[current] >= maxPathLength && !target.CompareTag("PoisonPit"))
+            // Si la distance actuelle est déjà maxPathLength et que la cible n'est PAS une tuile spéciale
+            if (distance[current] >= maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile"))) // Ajout de ShrinkTile
             {
                 continue;
             }
@@ -477,21 +485,19 @@ public class PlayerMovement : MonoBehaviour
                     cameFrom[neighbor] = current;
                     distance[neighbor] = distance[current] + 1;
 
-                    // Condition pour les tuiles non-PoisonPit : si le chemin est trop long, on ne le prend pas
-                    // Si on atteint la cible et que la distance dépasse maxPathLength *ET* ce n'est pas un PoisonPit
-                    if (neighbor == target && distance[neighbor] > maxPathLength && !neighbor.CompareTag("PoisonPit"))
+                    // Condition pour les tuiles non-spéciales : si le chemin est trop long, on ne le prend pas
+                    // Si on atteint la cible et que la distance dépasse maxPathLength *ET* ce n'est pas une tuile spéciale
+                    if (neighbor == target && distance[neighbor] > maxPathLength && !(neighbor.CompareTag("PoisonPit") || neighbor.CompareTag("ShrinkTile"))) // Ajout de ShrinkTile
                     {
-                        foundPath = false; // Ce chemin vers cette cible est invalide car trop long
-                        queue.Clear(); // Vider la queue pour arrêter la recherche
-                        break; // Sortir de la boucle des voisins
+                        foundPath = false; 
+                        queue.Clear(); 
+                        break; 
                     }
                 }
             }
-            // Si la queue est vide et on n'a pas atteint la cible, le chemin n'a pas été trouvé.
-            // La condition précédente pour PoisonPit ici était redondante ou mal placée.
             if (queue.Count == 0 && current != target)
             {
-                foundPath = false; // Pas de chemin valide trouvé.
+                foundPath = false; 
                 break;
             }
         }
@@ -513,9 +519,9 @@ public class PlayerMovement : MonoBehaviour
                 pathObjects.RemoveAt(0);
             }
 
-            // Dernière vérification de la longueur du chemin pour les non-PoisonPits
-            // Si le chemin est trop long ET que la cible n'est PAS un PoisonPit, alors le chemin est invalide.
-            if (pathObjects.Count > maxPathLength && !target.CompareTag("PoisonPit"))
+            // Dernière vérification de la longueur du chemin pour les non-tuiles spéciales
+            // Si le chemin est trop long ET que la cible n'est PAS une tuile spéciale, alors le chemin est invalide.
+            if (pathObjects.Count > maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile"))) // Ajout de ShrinkTile
             {
                 return null;
             }
@@ -527,8 +533,8 @@ public class PlayerMovement : MonoBehaviour
 
     List<GameObject> CalculatePathForHover(GameObject startCube, GameObject targetCube)
     {
-        // Un PoisonPit ne devrait pas être affiché comme une cible valide pour le survol
-        if (targetCube.CompareTag("PoisonPit")) return null;
+        // Une tuile spéciale ne devrait pas être affichée comme une cible valide pour le survol
+        if (targetCube.CompareTag("PoisonPit") || targetCube.CompareTag("ShrinkTile")) return null; // Ajout de ShrinkTile
 
         if (((1 << targetCube.layer) & obstacleLayer) != 0) return null;
 
@@ -582,23 +588,23 @@ public class PlayerMovement : MonoBehaviour
             currentGridCube = FindNearestGridCube(transform.position);
             if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
 
-            // Si la case sur laquelle on vient d'atterrir est un PoisonPit,
+            // Si la case sur laquelle on vient d'atterrir est un PoisonPit ou ShrinkTile,
             // alors on ne met PAS à jour lastSafePosition et on avance DÉJÀ
             // à l'index suivant du chemin pour déclencher le prochain saut immédiatement.
-            // Le grossissement est géré par le PoisonPit lui-même via OnTriggerEnter.
-            if (currentGridCube != null && currentGridCube.CompareTag("PoisonPit"))
+            // Le redimensionnement est géré par le script de la tuile elle-même via OnTriggerEnter.
+            if (currentGridCube != null && (currentGridCube.CompareTag("PoisonPit") || currentGridCube.CompareTag("ShrinkTile"))) // Ajout de ShrinkTile
             {
-                Debug.Log("Player landed on a PoisonPit (transit). Moving to next path segment immediately.");
+                Debug.Log("Player landed on a special tile (transit). Moving to next path segment immediately.");
                 currentPathIndex++;
             }
-            else // Sinon, si c'est une case normale (non-poison) ou un réactif
+            else // Sinon, si c'est une case normale ou un réactif
             {
                 currentPathIndex++;
                 lastSafePosition = transform.position; // Mettre à jour la lastSafePosition
                 Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
 
-                // Si la case sur laquelle le joueur atterrit a le tag "ReactiveTile"
-                if (currentGridCube != null && currentGridCube.CompareTag("ReactiveTile")) // Assurez-vous d'avoir ce tag sur vos tuiles vertes
+                // Si la case sur laquelle le joueur atterrit a le tag "ReactiveTile" (tuiles vertes d'origine)
+                if (currentGridCube != null && currentGridCube.CompareTag("ReactiveTile")) 
                 {
                     Debug.Log("Player landed on a ReactiveTile. Increasing player size.");
                     // Appel de la méthode de changement de taille avec la durée par défaut pour les réactifs

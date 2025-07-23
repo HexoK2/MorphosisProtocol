@@ -8,6 +8,7 @@ TagManager:
   - Obstacle
   - FallingPlatform
   - PoisonPit
+  - ShrinkTile
   layers:
   - Default
   - TransparentFX
@@ -19,7 +20,7 @@ TagManager:
   - Player
   - WallObstacle
   - PoisonObstacle
-  - 
+  - Object
   - 
   - 
   - 
