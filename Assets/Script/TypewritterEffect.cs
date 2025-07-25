@@ -8,13 +8,9 @@ public class TypewriterEffect : MonoBehaviour
     [Tooltip("Le composant TextMeshPro que ce script va animer.")]
     public TextMeshProUGUI textMeshProComponent;
 
-    // Nouvelle variable : Taille de la police (qui affecte la taille des caractères)
-    [Tooltip("La taille de la police du texte (affecte la taille des caractères eux-mêmes).")]
-    public float fontSize = 36f; // Valeur par défaut
-
-    // NOUVELLE VARIABLE : Scale du GameObject (qui affecte la taille globale de l'objet)
-    [Tooltip("La scale du GameObject du texte. Elle sera forcée à cette valeur.")]
-    public Vector3 lockedScale = new Vector3(1f, 1f, 1f); // Valeur par défaut (1,1,1)
+    // NOUVELLE VARIABLE : Taille de la police
+    [Tooltip("La taille de la police du texte.")]
+    public float fontSize = 36f; // Valeur par défaut, vous pouvez ajuster
 
     // Le texte complet à afficher
     // Ceci sera rempli par le script ObjectHighlighter
@@ -49,11 +45,12 @@ public class TypewriterEffect : MonoBehaviour
         if (textMeshProComponent != null)
         {
             textMeshProComponent.text = "";
+            // Applique la taille de police définie dans l'inspecteur dès le démarrage
             textMeshProComponent.fontSize = fontSize; 
         }
 
-        // --- Applique la scale verrouillée au démarrage ---
-        transform.localScale = lockedScale; 
+        // Optionnel : S'assurer que la scale est correcte au démarrage
+        transform.localScale = Vector3.one; 
     }
 
     // Fonction pour démarrer l'effet
@@ -71,8 +68,8 @@ public class TypewriterEffect : MonoBehaviour
             textMeshProComponent.fontSize = fontSize;
         }
 
-        // --- Applique la scale verrouillée au moment du lancement de l'effet ---
-        transform.localScale = lockedScale;
+        // Optionnel : S'assurer que la scale est correcte au moment du lancement
+        transform.localScale = Vector3.one;
         
         // Lance la nouvelle coroutine
         typewriterCoroutine = StartCoroutine(Typewrite());

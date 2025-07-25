@@ -19,8 +19,10 @@ public class ShrinkTile : MonoBehaviour
     [Header("Paramètres de l'effet ShrinkTile (redimensionnement)")]
     [Tooltip("Type de durée pour l'effet de rétrécissement.")]
     public ScaleEffectDurationType durationType = ScaleEffectDurationType.Temporary; // Nouvelle option
+
     [Tooltip("Taille que le joueur prendra en tombant sur la tuile rétrécissante.")]
     public float shrinkScale = 0.5f; // Taille spécifique de rétrécissement (ex: 0.5f pour moitié)
+
     [Tooltip("Durée pendant laquelle le joueur reste à cette taille réduite (seulement si 'Temporary').")]
     public float shrinkDuration = 5.0f; // Durée de l'effet rétrécissant
 
@@ -49,6 +51,10 @@ public class ShrinkTile : MonoBehaviour
         if (((1 << other.gameObject.layer) & playerLayer) != 0)
         {
             Debug.Log("Joueur a touché une ShrinkTile ! Application de l'effet rétrécissant...");
+            if (playerMovementScript != null)
+            {
+                playerMovementScript.IsSmall = true; // Marque le joueur comme petit
+            }
             ApplyShrinkEffect(other.gameObject);
         }
     }
@@ -68,7 +74,6 @@ public class ShrinkTile : MonoBehaviour
         {
             // Déterminer la durée à passer à ChangePlayerScale en fonction du type de durée choisi
             float actualDuration = (durationType == ScaleEffectDurationType.Temporary) ? shrinkDuration : -1f; // -1f pour "indéfini"
-
             playerMovementScript.ChangePlayerScale(shrinkScale, actualDuration); // Appelle la méthode de redimensionnement
 
             // Le joueur revient à la dernière position sûre après l'effet

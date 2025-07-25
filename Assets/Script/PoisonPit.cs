@@ -49,6 +49,7 @@ public class PoisonPit : MonoBehaviour
         if (((1 << other.gameObject.layer) & playerLayer) != 0)
         {
             Debug.Log("Joueur a touché le PoisonPit ! Application de l'effet grossissant...");
+            playerMovementScript.IsSmall = false; // Marque le joueur comme petit
             ApplyPoisonEffect(other.gameObject);
         }
     }

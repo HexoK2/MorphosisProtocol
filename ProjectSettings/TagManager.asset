@@ -9,6 +9,7 @@ TagManager:
   - FallingPlatform
   - PoisonPit
   - ShrinkTile
+  - MutationWall
   layers:
   - Default
   - TransparentFX
@@ -21,7 +22,7 @@ TagManager:
   - WallObstacle
   - PoisonObstacle
   - Object
-  - 
+  - obstacleLayer
   - 
   - 
   - 
