@@ -10,6 +10,7 @@ TagManager:
   - PoisonPit
   - ShrinkTile
   - MutationWall
+  - Door
   layers:
   - Default
   - TransparentFX
@@ -23,7 +24,7 @@ TagManager:
   - PoisonObstacle
   - Object
   - obstacleLayer
-  - 
+  - Torch
   - 
   - 
   - 
