@@ -1,140 +1,141 @@
-# 🎮 Morphosis  (Projet en developpement...)
+# 🎮 Morphosis  *(Project in development...)*
 
-Bienvenue sur le dépôt GitHub de **Morphosis** !
+Welcome to the GitHub repository of **Morphosis**!
 
-Morphosis est un jeu d'arcade-puzzle en 3D isométrique avec des éléments de plateforme et de survie, où l'adaptation est la clé. Incarnez un organisme gélatineux capable de se déformer en réaction aux obstacles pour s'échapper d'un laboratoire de biotechnologie clandestin.
+Morphosis is a 3D isometric arcade-puzzle game with platforming and survival elements, where adaptation is key. You play as a gelatinous organism that can deform in reaction to obstacles to escape from a secret biotechnology lab.
 
 ---
 
-## ✨ Aperçu du Jeu
+## ✨ Game Overview
 
-**Titre :** Morphosis
-**Type :** Jeu solo, Arcade-Puzzle 3D, Plateforme, Survie
-**Plateformes Cibles :** PC (Windows, macOS, Linux), Android (optionnel)
-**Durée de jeu :** Niveaux courts (3-5 min), jeu complet estimé à 2-3 heures (pour 20-30 niveaux).
-**Public Visé :** Joueurs occasionnels, amateurs de puzzles et de plateformes, appréciant les concepts originaux et l'expérimentation.
+**Title:** Morphosis  
+**Genre:** Single-player, 3D Arcade-Puzzle, Platformer, Survival  
+**Target Platforms:** PC (Windows, macOS, Linux), Android (optional)  
+**Playtime:** Short levels (3–5 minutes), full game estimated at 2–3 hours (20–30 levels)  
+**Target Audience:** Casual players, puzzle and platforming fans, people who enjoy unique mechanics and experimentation
 
 ### 🌟 Unique Selling Proposition (USP)
 
-La mécanique centrale du jeu est la **déformation dynamique du personnage** en réponse aux collisions avec l'environnement. Chaque obstacle provoque une mutation qui modifie les attributs du Blob (taille, vitesse, élasticité, etc.), forçant le joueur à s'adapter constamment et à repenser sa stratégie. Une collision n'est pas toujours un échec, mais une opportunité de transformation !
+The core mechanic of Morphosis is the **dynamic deformation of the character** in response to collisions with the environment. Each obstacle triggers a mutation that alters the Blob's attributes (size, speed, elasticity, etc.), forcing the player to adapt constantly and rethink their strategy.  
+A collision isn’t always a failure — it's often an opportunity for transformation!
 
 ---
 
-## 📖 Concept & Scénario
+## 📖 Concept & Story
 
-Incarnez un **"Blob"**, une entité expérimentale semi-gélatineuse, qui tente de s'échapper d'un laboratoire hostile conçu pour tester et contenir ces organismes. Guidé par son instinct primaire de survie, le Blob doit naviguer à travers des salles piégées, en utilisant ses mutations forcées pour surmonter les défis.
+You play as a **"Blob"**, a semi-gelatinous experimental entity trying to escape from a hostile lab built to test and contain such organisms. Guided by its primal survival instinct, the Blob must make its way through trap-filled rooms, using forced mutations to overcome challenges.
 
-**Core Gameplay Loop :**
-1.  Entrer dans une nouvelle "salle" (niveau).
-2.  Identifier les obstacles et les propriétés nécessaires pour les surmonter.
-3.  Naviguer prudemment pour éviter les mutations indésirables ou les utiliser stratégiquement.
-4.  Atteindre la sortie en s'adaptant à sa propre forme changeante.
-5.  Collecter éventuellement des "points de mutation" ou "fragments d'ADN".
+**Core Gameplay Loop:**
+1. Enter a new "room" (level).  
+2. Identify obstacles and the required properties to overcome them.  
+3. Move strategically to avoid or take advantage of mutations.  
+4. Reach the exit by adapting to your changing form.  
+5. Optionally collect "mutation points" or "DNA fragments".
 
-**Thème Central :** Adaptation, survie, et la nature imprévisible de l'évolution forcée.
-
----
-
-## ⚙️ Mécaniques de Jeu Principales
-
-### 3.1. Déplacement du Personnage (Le Blob)
-Le Blob est contrôlé via les **flèches directionnelles / ZQSD / WASD** sur PC pour le mouvement 2D (haut pour sauter/grimper, bas pour s'accroupir, gauche/droite pour le déplacement horizontal). Des contrôles tactiles (swipe, joystick virtuel, tap-to-move) sont envisagés pour Android. Le Blob bénéficie d'une **physique molle (soft body physics)**, lui permettant de s'écraser, s'étirer et rebondir de manière réaliste.
-
-### 3.2. Déformation et Mutations
-La mécanique phare. Chaque collision avec un obstacle spécifique déclenche une mutation modifiant les attributs du Blob. Ces mutations peuvent être temporaires ou permanentes pour le niveau en cours.
-
-**Exemples d'attributs mutables :**
-* **Taille :** Réduction (pour conduits étroits) ou Grossissement (pour activer plateformes).
-* **Vitesse :** Ralentissement (danger) ou Accélération (échapper aux pièges).
-* **Élasticité / Rebond :** Adhérence aux murs ou rebond plus haut.
-* **Viscosité / Adhérence :** Perte d'adhérence ou capacité à s'accrocher aux murs.
-* **Densité / Poids :** Lévitation ou capacité à couler/activer interrupteurs lourds.
-* **Propriétés Spéciales :** Luminosité, Absorption, Résistance (envisagées pour des défis avancés).
-
-Des indicateurs visuels (couleur, particules) et sonores informent le joueur de l'état du Blob.
-
-### 3.3. Salles Évolutives (Niveaux)
-Chaque niveau est une "salle" de laboratoire, introduisant de nouvelles mécaniques et les combinant de manière complexe.
-**Exemples de mécaniques de niveau :** Portes à forme, pièges temporels, zones de mutation spontanée, lasers, plateformes mouvantes, puzzles lumineux, courants d'air/eau, et des drones de sécurité ennemis.
-
-### 3.4. Sauvegarde et Progression
-* **Sauvegarde automatique** à la fin de chaque niveau réussi.
-* **Checkpoints ("Stations de Recombinaison")** par niveau, permettant de réapparaître avec la forme du Blob au moment de l'activation.
-* Option de réinitialiser le niveau.
+**Main Theme:** Adaptation, survival, and the unpredictable nature of forced evolution.
 
 ---
 
-## 🎨 Direction Artistique & Ambiance Sonore
+## ⚙️ Core Mechanics
 
-### Direction Artistique
-* **Univers :** Laboratoire futuriste sombre et stérile, contrastant avec les couleurs vives et organiques du Blob.
-* **Visuels :** Tubes de confinement, câbles, écrans glitchés, lumières néon.
-* **Palette de Couleurs :** Dominance de gris froids, bleus profonds, blancs cassés pour l'environnement ; touches de couleurs vives (verts acides, roses, oranges) pour les éléments interactifs et les différentes formes du Blob.
-* **Graphismes :** Style minimaliste, vectoriel, avec des formes géométriques simples pour l'environnement et des formes organiques/fluides pour le Blob. Le Blob est semi-transparent avec un cœur lumineux changeant de couleur.
-* **Effets Visuels :** Animations molles du Blob, particules lors des mutations, effets de lumière dynamiques, feedback visuel clair des interactions.
-* **UI :** Épurée, futuriste, minimaliste, avec des icônes simples et un HUD clair.
+### 3.1. Character Movement (The Blob)
+The Blob is controlled using **arrow keys / ZQSD / WASD** for 2D movement (up to jump/climb, down to crouch, left/right to move horizontally). Touch controls (swipe, virtual joystick, tap-to-move) are planned for Android.  
+The Blob uses **soft body physics**, allowing it to squash, stretch, and bounce realistically.
 
-### Ambiance Sonore
-* **Musique :** Ambiance électro-nerveuse et glitchée, avec des synthétiseurs froids et des rythmes irréguliers, s'intensifiant ou s'adoucissant selon la situation.
-* **Effets Sonores (SFX) :** Bruits de "squish" et "splat" pour le Blob, sons distincts pour les mutations, bruits des pièges, portes, lasers, et un son satisfaisant pour les collectibles.
-* **Voix Robotiques :** Annonces automatisées du laboratoire ("Anomalie détectée...", "Protocole de confinement activé...") pour renforcer l'ambiance dystopique.
+### 3.2. Deformation & Mutations
+The core mechanic. Each collision with a specific obstacle triggers a mutation that alters the Blob's attributes. These mutations may be temporary or persistent for the current level.
 
----
+**Examples of mutable attributes:**
+* **Size:** Shrink (to crawl through vents) or Enlarge (to activate pressure plates)
+* **Speed:** Slow down (danger) or accelerate (to escape traps)
+* **Elasticity / Bounce:** Stick to walls or bounce higher
+* **Viscosity / Grip:** Lose grip or gain wall-clinging abilities
+* **Density / Weight:** Float or become heavy enough to trigger weight switches
+* **Special Traits:** Luminescence, Absorption, Resistance (planned for advanced puzzles)
 
-## 🛠️ Architecture Technique
+Visual and audio cues (color, particles, sounds) inform the player of the Blob’s current state.
 
-* **Moteur de Jeu :** Unity 2022+
-* **Langage :** C#
-* **Organisation du Projet :** Structure de dossiers logique (`Assets/Scenes`, `Assets/Scripts/Player`, `Assets/Prefabs/Environment`, `Assets/Audio/Music` etc.).
-* **Gestion de Version :** Git avec un fichier `.gitignore` adapté pour Unity (excluant `Library/`, `Temp/`, etc.).
-* **Optimisation :** Utilisation de pools d'objets, optimisation des appels de dessin.
-* **Design Patterns :** Singleton, Observer/Event-driven.
+### 3.3. Evolving Rooms (Levels)
+Each level is a "lab room" introducing new mechanics and combining them in complex ways.  
+**Examples:** shape-sensitive doors, timed traps, spontaneous mutation zones, lasers, moving platforms, light-based puzzles, wind/water currents, and hostile security drones.
 
----
-
-## 🗺️ Conception des Niveaux (Level Design)
-
-* **Apprentissage Progressif :** Introduction graduelle des mécaniques.
-* **Clarté Visuelle :** Communication claire des interactions et dangers.
-* **Équilibre :** Chaque niveau équilibre puzzle, plateforme et survie.
-* **Structure :** Chaque niveau est une salle fermée avec entrée, sortie, chemin principal, chemins alternatifs/secrets, obstacles de mutation, pièges, éléments de puzzle et checkpoints.
-* **Progression :** Niveaux regroupés en zones thématiques (ex: "Zone de Confinement Basique", "Laboratoire de Mutagénèse Avancée"), augmentant la complexité et combinant les mutations.
-
-**Exemples de Niveaux :**
-* "Le Couloir Rétractable" (gestion de la taille)
-* "La Course Contre la Montre" (gestion de la vitesse)
-* "Le Labyrinthe Lumineux" (utilisation de propriétés spéciales)
-* "La Chute Libre Contrôlée" (ajustement de la densité)
+### 3.4. Save & Progression
+* **Auto-save** at the end of each completed level  
+* **Checkpoints ("Recombination Stations")** per level, allowing respawn in the Blob’s current form  
+* Option to reset/restart the level at any time
 
 ---
 
-## 🚀 Roadmap Simplifiée (MVP)
+## 🎨 Art Direction & Audio Atmosphere
 
-* **Phase 1 (Prototype Minimal) :** Création projet Unity, Blob basique (mouvement, saut), niveau test simple.
-* **Phase 2 (Mutations & Obstacles Simples) :** Gestion des attributs, 2-3 types de mutations et obstacles, 2-3 niveaux.
-* **Phase 3 (Style Graphique & UI) :** Affinage visuel du Blob et environnement, VFX, UI (écrans, HUD), premières musiques/SFX.
-* **Phase 4 (Système de Sauvegarde & Menu) :** Sauvegarde progression, checkpoints avancés, sélection de niveau, options.
-* **Phase Finale (Tests, Équilibrage, Build) :** Conception niveaux restants (10-15 pour MVP), tests approfondis, équilibrage, optimisation, finalisation audio, build PC (et Android).
+### Art Direction
+* **World:** Dark, sterile futuristic lab, contrasting with the vivid organic colors of the Blob  
+* **Visuals:** Containment tubes, cables, glitchy screens, neon lighting  
+* **Color Palette:** Cold grays, deep blues, off-whites for the environment; bright colors (acid green, pinks, oranges) for interactive elements and Blob forms  
+* **Graphics:** Minimalist, vector-based style with geometric environments and smooth, organic Blob animations  
+* **Visual Effects:** Squishy Blob animations, mutation particles, dynamic lighting, and clear interaction feedback  
+* **UI:** Clean, futuristic, minimalist — simple icons and a clear HUD
 
----
-
-## 🎁 Bonus Optionnels (Post-MVP)
-
-* **Système de Skins :** Débloquer de nouvelles apparences pour le Blob.
-* **Mode Infini :** Salle générée aléatoirement avec difficulté croissante.
-* **Leaderboard Local :** Enregistrer les meilleurs temps/scores.
-* **Nouveaux Types de Mutations et Obstacles :** Extension continue du gameplay.
-* **Mode "Challenge" :** Niveaux avec des contraintes spécifiques.
+### Sound Design
+* **Music:** Nervous, glitchy electro with cold synths and irregular rhythms, intensifying or relaxing based on the situation  
+* **SFX:** "Squish" and "splat" sounds for the Blob, distinct mutation audio cues, trap/door/laser sounds, satisfying collectible effects  
+* **Robotic Voices:** Lab system announcements ("Anomaly detected...", "Containment protocol activated...") to reinforce the dystopian atmosphere
 
 ---
 
-## 🤝 Contribution
+## 🛠️ Technical Architecture
 
-Ce projet est développé par [K2 (moi.)].
-
-Si vous souhaitez contribuer ou avez des questions, n'hésitez pas à ouvrir une issue ou à nous contacter.
+* **Game Engine:** Unity 2022+  
+* **Language:** C#  
+* **Project Structure:** Clean folder structure (`Assets/Scenes`, `Assets/Scripts/Player`, `Assets/Prefabs/Environment`, `Assets/Audio/Music`, etc.)  
+* **Version Control:** Git with a Unity-optimized `.gitignore` (excluding `Library/`, `Temp/`, etc.)  
+* **Optimization:** Object pooling, draw call reduction  
+* **Design Patterns:** Singleton, Observer / Event-driven architecture
 
 ---
 
+## 🗺️ Level Design
 
-**Développé avec Unity.**
+* **Progressive Learning:** Gradual introduction of mechanics  
+* **Visual Clarity:** Clear communication of interactions and hazards  
+* **Balance:** Each level mixes puzzle-solving, platforming, and survival  
+* **Structure:** Each level is a closed room with an entry, exit, main path, optional/secret paths, mutation zones, traps, puzzles, and checkpoints  
+* **Progression:** Levels grouped into themed zones (e.g. "Basic Containment", "Advanced Mutagenesis Lab") with increasing complexity and mutation combinations
+
+**Sample Levels:**
+* "The Retractable Hallway" (size-based navigation)  
+* "The Time Trial" (speed mutation mechanics)  
+* "The Luminous Maze" (use of special properties)  
+* "Controlled Freefall" (density mutation control)
+
+---
+
+## 🚀 Simplified Roadmap (MVP)
+
+* **Phase 1 (Minimal Prototype):** Unity project setup, basic Blob movement/jump, simple test level  
+* **Phase 2 (Mutations & Simple Obstacles):** Attribute system, 2–3 mutation types and obstacle mechanics, 2–3 test levels  
+* **Phase 3 (Graphics & UI):** Polishing Blob/environments, VFX, UI (menus, HUD), first music and sound effects  
+* **Phase 4 (Save System & Menu):** Save progression, advanced checkpoints, level selection, options menu  
+* **Final Phase (Testing & Build):** Finish remaining levels (10–15 for MVP), full testing, balancing, optimization, audio finalization, PC (and Android) build
+
+---
+
+## 🎁 Optional Bonuses (Post-MVP)
+
+* **Skin System:** Unlockable Blob appearances  
+* **Endless Mode:** Randomly generated survival room with increasing difficulty  
+* **Local Leaderboard:** Record best times/scores  
+* **New Mutation & Obstacle Types:** Ongoing gameplay expansion  
+* **Challenge Mode:** Levels with unique constraints or objectives
+
+---
+
+## 🤝 Contributing
+
+This project is being developed by [K2 (me.)].
+
+If you’d like to contribute or have any questions, feel free to open an issue or reach out.
+
+---
+
+**Developed with Unity.**
