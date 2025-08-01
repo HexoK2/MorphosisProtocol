@@ -71,6 +71,7 @@ public class PoisonPit : MonoBehaviour
             float actualDuration = (durationType == ScaleEffectDurationType.Temporary) ? poisonBoostDuration : -1f; // -1f pour "indéfini"
 
             playerMovementScript.ChangePlayerScale(poisonBoostScale, actualDuration); // Appelle la méthode modifiée
+            playerMovementScript.IsBig = true; // Marque le joueur comme grand
         }
         else
         {

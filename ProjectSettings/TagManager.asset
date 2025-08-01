@@ -11,6 +11,9 @@ TagManager:
   - ShrinkTile
   - MutationWall
   - Door
+  - Torch
+  - FadeObstacle
+  - BigMutationWall
   layers:
   - Default
   - TransparentFX
@@ -25,7 +28,7 @@ TagManager:
   - Object
   - obstacleLayer
   - Torch
-  - 
+  - BigMutationTiles
   - 
   - 
   - 
