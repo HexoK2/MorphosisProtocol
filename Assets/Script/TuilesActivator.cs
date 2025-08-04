@@ -105,6 +105,7 @@ public class TuilesActivator : MonoBehaviour
             {
                 cube.SetActive(shouldBeActive);
             }
+            
         }
 
         Debug.Log("L'état des cubes a été mis à jour. Ils sont maintenant " + (shouldBeActive ? "activés." : "désactivés."));

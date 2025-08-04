@@ -4,6 +4,8 @@ using System.Collections; // Nécessaire pour les Coroutines
 public class NewReactive : MonoBehaviour
 {
     [Header("Paramètres du Réactif")]
+    private PlayerMovement playerMovement; // Référence au script PlayerMovement du joueur
+   
     [Tooltip("Le Tag du joueur (e.g., 'Player'). Assurez-vous que votre joueur a ce Tag.")]
     public string playerTag = "Player";
     [Tooltip("Le matériau à appliquer au joueur pour le rendre lumineux (brillant).")]
@@ -37,6 +39,22 @@ public class NewReactive : MonoBehaviour
         // Vérifie si l'objet qui entre en contact a le Tag du joueur.
         if (other.CompareTag(playerTag))
         {
+            // --- NOUVEAU : Récupère le script PlayerMovement du joueur qui est entré en collision ---
+            playerMovement = other.GetComponent<PlayerMovement>();
+            // --- FIN NOUVEAU ---
+
+            if (playerMovement != null)
+            {
+                // C'est ici que ça se passe !
+                // On accède à la variable hasTorch du script du joueur et on la passe à true
+                playerMovement.PickUpTorch();
+
+                Debug.Log("La variable 'hasTorch' du joueur a été activée !");
+            }
+            else
+            {
+                Debug.LogError("Le script PlayerMovement n'a pas été trouvé sur le joueur.");
+            }
            
             // Tente d'obtenir le composant Renderer du joueur.
             playerRenderer = other.GetComponent<Renderer>();
