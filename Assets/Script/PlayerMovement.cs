@@ -712,23 +712,12 @@ void PerformJump()
         currentGridCube = FindNearestGridCube(transform.position);
         if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
 
-        if (currentGridCube != null && (currentGridCube.CompareTag("PoisonPit") || currentGridCube.CompareTag("ShrinkTile") || currentGridCube.CompareTag("MutationWall"))) 
-        {
-            Debug.Log("Player landed on a special tile (transit). Moving to next path segment immediately.");
-            currentPathIndex++;
-        }
-        else
-        {
-            currentPathIndex++;
-            lastSafePosition = transform.position;
-            Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
-
-            if (currentGridCube != null && currentGridCube.CompareTag("ReactiveTile")) 
-            {
-                Debug.Log("Player landed on a ReactiveTile. Increasing player size.");
-                ChangePlayerScale(boostedScale, defaultBoostedDuration);
-            }
-        }
+        // Le joueur atterrit sur la tuile, mais on ne fait rien de spécial ici.
+        // La tuile (ShrinkTile) va détecter l'atterrissage via OnTriggerEnter et faire son travail.
+        currentPathIndex++;
+        
+        lastSafePosition = transform.position;
+        Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
 
         if (currentPathIndex >= path.Count)
         {
@@ -754,7 +743,6 @@ void PerformJump()
 
         rb.MovePosition(new Vector3(currentPosHorizontal.x, yInterpolated + yParabolaOffset, currentPosHorizontal.z));
 
-        // --- Rotation fluide pendant le saut ---
         Vector3 direction = (targetJumpPosition - transform.position);
         direction.y = 0f;
         if (direction != Vector3.zero)

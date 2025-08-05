@@ -6099,11 +6099,11 @@ GameObject:
   - component: {fileID: 699845528}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Player
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!135 &699845521
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -14720,10 +14720,10 @@ MonoBehaviour:
   highlightableLayers:
     serializedVersion: 2
     m_Bits: 0
-  highlightMaterial: {fileID: 0}
+  highlightMaterial: {fileID: 2100000, guid: ab2792f9f661aff4b9b2038b99e70d47, type: 2}
   maxDetectionDistance: 100
-  playerMovement: {fileID: 0}
-  noLightMessageEffect: {fileID: 0}
+  playerMovement: {fileID: 8164078558702173040}
+  noLightMessageEffect: {fileID: 450253061}
   messageDisplayDuration: 2
 --- !u!4 &1932422516
 Transform:
@@ -16469,7 +16469,7 @@ MonoBehaviour:
   jumpHeight: 2
   jumpDuration: 0.5
   maxVerticalJumpDifference: 1.5
-  verticalOffsetOnGround: 0.05
+  verticalOffsetOnGround: -0.04
   maxPathLength: 3
   defaultScale: 1
   boostedScale: 1.5
