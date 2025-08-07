@@ -48,11 +48,13 @@ public class ShrinkTile : MonoBehaviour
         if (((1 << other.gameObject.layer) & playerLayer) != 0)
         {
             Debug.Log("Joueur a touché une ShrinkTile ! Application de l'effet...");
+            // ✅ CORRECTION : Applique la mutation avant l'effet
             if (playerMovementScript != null)
             {
-                playerMovementScript.IsSmall = true; // Marque le joueur comme petit
-                ApplyShrinkEffect(other.gameObject);
+                playerMovementScript.IsSmall = true;  // Le joueur devient petit
+                playerMovementScript.IsBig = false;   // Marque explicitement comme pas grand
             }
+            ApplyShrinkEffect(other.gameObject);
         }
     }
 
@@ -71,8 +73,28 @@ public class ShrinkTile : MonoBehaviour
             // Déterminer la durée en fonction du type de durée choisi
             float actualDuration = (durationType == ScaleEffectDurationType.Temporary) ? shrinkDuration : -1f;
             
-            // Appelle la méthode de redimensionnement pour changer la taille
+            // Appliquer l'effet de redimensionnement
             playerMovementScript.ChangePlayerScale(shrinkScale, actualDuration);
+            
+            // ✅ Lancer la coroutine de respawn après l'effet
+            StartCoroutine(RespawnAfterShrinkEffect(player));
+        }
+    }
+
+    IEnumerator RespawnAfterShrinkEffect(GameObject player)
+    {
+        // Petit délai pour voir l'effet visuel
+        yield return new WaitForSeconds(0.2f);
+
+        if (playerMovementScript != null)
+        {
+            // ✅ NOUVEAU : Utilise la méthode pour retourner à la tuile précédente
+            playerMovementScript.ReturnToPreviousTile();
+            Debug.Log("Joueur retourné à la tuile précédente après ShrinkTile");
+        }
+        else
+        {
+            Debug.LogError("Erreur : PlayerMovement script est null lors de la réinitialisation de la position.");
         }
     }
 }

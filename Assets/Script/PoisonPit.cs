@@ -18,11 +18,11 @@ public class PoisonPit : MonoBehaviour
 
     [Header("Paramètres de l'effet PoisonPit (redimensionnement)")]
     [Tooltip("Type de durée pour l'effet de grossissement du poison.")]
-    public ScaleEffectDurationType durationType = ScaleEffectDurationType.Temporary; // Nouvelle option
+    public ScaleEffectDurationType durationType = ScaleEffectDurationType.Temporary;
     [Tooltip("Taille que le joueur prendra en tombant dans le PoisonPit.")]
-    public float poisonBoostScale = 2.0f; // Nouvelle taille spécifique au poison
+    public float poisonBoostScale = 2.0f;
     [Tooltip("Durée pendant laquelle le joueur reste à cette taille augmentée après être tombé dans le poison (seulement si 'Temporary').")]
-    public float poisonBoostDuration = 5.0f; // Durée de l'effet grossissant du poison
+    public float poisonBoostDuration = 5.0f;
 
     void Start()
     {
@@ -49,7 +49,12 @@ public class PoisonPit : MonoBehaviour
         if (((1 << other.gameObject.layer) & playerLayer) != 0)
         {
             Debug.Log("Joueur a touché le PoisonPit ! Application de l'effet grossissant...");
-            playerMovementScript.IsSmall = false; // Marque le joueur comme petit
+            // ✅ CORRECTION : Le PoisonPit rend le joueur GRAND (IsBig = true, IsSmall = false)
+            if (playerMovementScript != null)
+            {
+                playerMovementScript.IsSmall = false; // Le joueur devient grand
+                playerMovementScript.IsBig = true;    // Marque explicitement comme grand
+            }
             ApplyPoisonEffect(other.gameObject);
         }
     }
@@ -68,30 +73,30 @@ public class PoisonPit : MonoBehaviour
         if (playerMovementScript != null)
         {
             // Déterminer la durée à passer à ChangePlayerScale en fonction du type de durée choisi
-            float actualDuration = (durationType == ScaleEffectDurationType.Temporary) ? poisonBoostDuration : -1f; // -1f pour "indéfini"
+            float actualDuration = (durationType == ScaleEffectDurationType.Temporary) ? poisonBoostDuration : -1f;
 
-            playerMovementScript.ChangePlayerScale(poisonBoostScale, actualDuration); // Appelle la méthode modifiée
-            playerMovementScript.IsBig = true; // Marque le joueur comme grand
+            // Appliquer l'effet de redimensionnement
+            playerMovementScript.ChangePlayerScale(poisonBoostScale, actualDuration);
+            
+            // ✅ IMPORTANT : Lancer la coroutine de respawn après l'effet
+            StartCoroutine(RespawnAfterPoisonEffect(player));
         }
         else
         {
             Debug.LogError("Erreur : PlayerMovement script est null lors de l'application de l'effet PoisonPit.");
         }
-
-        // Réinitialiser la position du joueur à la dernière position sûre
-        // Nous conservons cette réinitialisation de position quelle que soit la durée de l'effet de grossissement.
-        StartCoroutine(RespawnAfterPoisonEffect(player));
     }
 
     IEnumerator RespawnAfterPoisonEffect(GameObject player)
     {
-        // Attendre un très court instant pour laisser l'effet visuel de grossissement commencer
-        yield return new WaitForSeconds(0.2f); // Délai avant le respawn
+        // Petit délai pour voir l'effet visuel
+        yield return new WaitForSeconds(0.2f);
 
         if (playerMovementScript != null)
         {
-            player.transform.position = playerMovementScript.lastSafePosition;
-            Debug.Log($"Retour à la position sûre : {playerMovementScript.lastSafePosition}");
+            // ✅ NOUVEAU : Utilise la méthode pour retourner à la tuile précédente
+            playerMovementScript.ReturnToPreviousTile();
+            Debug.Log("Joueur retourné à la tuile précédente après PoisonPit");
         }
         else
         {

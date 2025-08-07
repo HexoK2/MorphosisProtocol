@@ -8,7 +8,8 @@ using System.Linq;
 public class PlayerMovement : MonoBehaviour
 {
     private Quaternion desiredRotation;
-private bool shouldRotate = false;
+    private bool shouldRotate = false;
+public GameObject previousGridCube; // Nouvelle variable pour tracker la tuile précédente
 
     // --- Paramètres de Mouvement ---
     [Header("Paramètres de Mouvement")]
@@ -698,58 +699,83 @@ void StartNextJump()
 
 
 
-void PerformJump()
-{
-    jumpTimer += Time.fixedDeltaTime;
-    float progress = jumpTimer / jumpDuration;
-
-    if (progress >= 1f)
+    void PerformJump()
     {
-        transform.position = targetJumpPosition + Vector3.up * verticalOffsetOnGround;
-        rb.linearVelocity = Vector3.zero;
-        isJumping = false;
+        jumpTimer += Time.fixedDeltaTime;
+        float progress = jumpTimer / jumpDuration;
 
-        currentGridCube = FindNearestGridCube(transform.position);
-        if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
-
-        // Le joueur atterrit sur la tuile, mais on ne fait rien de spécial ici.
-        // La tuile (ShrinkTile) va détecter l'atterrissage via OnTriggerEnter et faire son travail.
-        currentPathIndex++;
-        
-        lastSafePosition = transform.position;
-        Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
-
-        if (currentPathIndex >= path.Count)
+        if (progress >= 1f)
         {
-            pathCalculated = false;
-            path.Clear();
-            lr.positionCount = 0;
+            transform.position = targetJumpPosition + Vector3.up * verticalOffsetOnGround;
             rb.linearVelocity = Vector3.zero;
-            transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
-            ResetAllCellMaterials();
-            Debug.Log("Path completed.");
+            isJumping = false;
+
+            // ✅ NOUVEAU : Sauvegarder la tuile actuelle comme tuile précédente AVANT de changer
+            previousGridCube = currentGridCube;
+
+            currentGridCube = FindNearestGridCube(transform.position);
+            if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
+
+            currentPathIndex++;
+
+            // ✅ MODIFICATION : Ne mettre à jour lastSafePosition que si ce n'est PAS une tuile réactive
+            if (currentGridCube != null &&
+                !currentGridCube.CompareTag("PoisonPit") &&
+                !currentGridCube.CompareTag("ShrinkTile"))
+            {
+                lastSafePosition = transform.position;
+                Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
+            }
+
+            if (currentPathIndex >= path.Count)
+            {
+                pathCalculated = false;
+                path.Clear();
+                lr.positionCount = 0;
+                rb.linearVelocity = Vector3.zero;
+                transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
+                ResetAllCellMaterials();
+                Debug.Log("Path completed.");
+            }
         }
+        else
+        {
+            Vector3 currentPosHorizontal = Vector3.Lerp(
+                new Vector3(startJumpPosition.x, 0, startJumpPosition.z),
+                new Vector3(targetJumpPosition.x, 0, targetJumpPosition.z),
+                progress
+            );
+
+            float yInterpolated = Mathf.Lerp(startJumpPosition.y, targetJumpPosition.y + verticalOffsetOnGround, progress);
+            float yParabolaOffset = jumpHeight * (4f * progress * (1f - progress));
+
+            rb.MovePosition(new Vector3(currentPosHorizontal.x, yInterpolated + yParabolaOffset, currentPosHorizontal.z));
+
+            Vector3 direction = (targetJumpPosition - transform.position);
+            direction.y = 0f;
+            if (direction != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+            }
+        }
+    }
+
+// ✅ NOUVELLE MÉTHODE : Pour revenir à la tuile précédente
+public void ReturnToPreviousTile()
+{
+    if (previousGridCube != null)
+    {
+        Vector3 targetPosition = previousGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
+        transform.position = targetPosition;
+        currentGridCube = previousGridCube;
+        Debug.Log($"Joueur retourné à la tuile précédente : {previousGridCube.name}");
     }
     else
     {
-        Vector3 currentPosHorizontal = Vector3.Lerp(
-            new Vector3(startJumpPosition.x, 0, startJumpPosition.z),
-            new Vector3(targetJumpPosition.x, 0, targetJumpPosition.z),
-            progress
-        );
-
-        float yInterpolated = Mathf.Lerp(startJumpPosition.y, targetJumpPosition.y + verticalOffsetOnGround, progress);
-        float yParabolaOffset = jumpHeight * (4f * progress * (1f - progress));
-
-        rb.MovePosition(new Vector3(currentPosHorizontal.x, yInterpolated + yParabolaOffset, currentPosHorizontal.z));
-
-        Vector3 direction = (targetJumpPosition - transform.position);
-        direction.y = 0f;
-        if (direction != Vector3.zero)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
-        }
+        // Fallback sur lastSafePosition si pas de tuile précédente
+        transform.position = lastSafePosition;
+        Debug.Log("Pas de tuile précédente trouvée, retour à lastSafePosition");
     }
 }
 
@@ -814,15 +840,39 @@ void PerformJump()
 
     // Méthode publique pour changer la taille, maintenant avec une durée paramétrable.
     // Une 'holdDuration' de -1f signifie "indéfiniment".
-    public void ChangePlayerScale(float targetUniformScale, float holdDuration)
+// Ajoute cette méthode dans PlayerMovement.cs ou modifie ChangePlayerScale
+public void ChangePlayerScale(float targetUniformScale, float holdDuration)
+{
+    // Arrête toute coroutine de changement de taille en cours
+    if (scaleChangeCoroutine != null)
     {
-        // Arrête toute coroutine de changement de taille en cours
-        if (scaleChangeCoroutine != null)
-        {
-            StopCoroutine(scaleChangeCoroutine);
-        }
-        // Démarre la nouvelle coroutine de changement de taille avec la durée spécifiée
-        scaleChangeCoroutine = StartCoroutine(ScalePlayerOverTime(targetUniformScale, holdDuration));
+        StopCoroutine(scaleChangeCoroutine);
+    }
+    
+    // ✅ AJOUT : Applique immédiatement la mutation du collider
+    // Si on grossit (targetUniformScale > mutationNormalScale), on n'est plus petit
+    // Si on rétrécit (targetUniformScale < mutationNormalScale), on devient petit
+    if (targetUniformScale <= mutationSmallScale)
+    {
+        IsSmall = true;
+        IsBig = false;
+    }
+    else if (targetUniformScale >= mutationNormalScale * 1.5f) // Seuil pour "gros"
+    {
+        IsSmall = false;
+        IsBig = true;
+    }
+    else
+    {
+        IsSmall = false;
+        IsBig = false;
+    }
+    
+    // Applique immédiatement la taille du collider
+    ApplyPlayerMutationSize(IsSmall);
+    
+    // Démarre la coroutine pour l'effet visuel
+    scaleChangeCoroutine = StartCoroutine(ScalePlayerOverTime(targetUniformScale, holdDuration));
     }
 
     // Coroutine modifiée pour inclure une durée de maintien paramétrable et la gestion de "indéfini"
@@ -881,10 +931,16 @@ void OnCollisionEnter(Collision collision)
 {
     if (collision.gameObject.CompareTag(fallingPlatformTag))
     {
-        // La détection de la collision suffit
         StartCoroutine(FallPlatform(collision.gameObject));
     }
+    else if (collision.gameObject.CompareTag("PoisonPit") || collision.gameObject.CompareTag("ShrinkTile"))
+    {
+        // Respawn à la dernière position sûre
+        transform.position = lastSafePosition;
+        Debug.Log("Le joueur a touché une tuile dangereuse et respawn à la dernière position sûre.");
+    }
 }
+
 
     IEnumerator FallPlatform(GameObject platform)
     {
