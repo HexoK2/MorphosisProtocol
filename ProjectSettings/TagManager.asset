@@ -15,6 +15,7 @@ TagManager:
   - FadeObstacle
   - BigMutationWall
   - ObjectCamera
+  - StickyTile
   layers:
   - Default
   - TransparentFX

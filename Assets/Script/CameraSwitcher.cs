@@ -10,6 +10,9 @@ public class CameraSwitcher : MonoBehaviour
 
     [Tooltip("Le Layer des objets cliquables qui doivent activer l'autre caméra.")]
     public LayerMask clickableLayer;
+    
+    [Tooltip("Le script de mouvement du joueur pour vérifier si la torche est équipée.")]
+    public PlayerMovement playerMovement;
 
     void Start()
     {
@@ -32,51 +35,43 @@ public class CameraSwitcher : MonoBehaviour
 
             if (Physics.Raycast(ray, out hit, Mathf.Infinity, clickableLayer))
             {
-                // Vérifie si l'objet cliqué a un script ObjectInfo
-                ObjectInfo info = hit.collider.GetComponent<ObjectInfo>();
-                if (info != null && info.cameraViewPoint != null)
+                Debug.Log("Raycast a touché l'objet : " + hit.collider.gameObject.name);
+                
+                // NOUVEAU : On affiche la valeur de la variable hasTorch
+                Debug.Log("Valeur de hasTorch : " + playerMovement.hasTorch);
+
+                if (mainCamera.gameObject.activeSelf && playerMovement.hasTorch)
                 {
-                    // Si la mainCamera est active, on bascule vers la vue de l'objet cliqué
-                    if (mainCamera.gameObject.activeSelf)
+                    ObjectInfo info = hit.collider.GetComponent<ObjectInfo>();
+                    if (info != null && info.cameraViewPoint != null)
                     {
                         SwitchToObjectView(info.cameraViewPoint);
-                    }
-                    // Si on clique une deuxième fois sur un objet, on revient à la mainCamera
-                    else
-                    {
-                        SwitchToMainView();
                     }
                 }
             }
         }
         
-        // Gère le retour à la caméra principale avec la touche Échap
         if (objectCamera.gameObject.activeSelf && Input.GetKeyDown(KeyCode.Escape))
         {
             SwitchToMainView();
         }
     }
 
-    /// <summary>
-    /// Active la caméra d'objet et la positionne au point de vue donné.
-    /// </summary>
-    private void SwitchToObjectView(GameObject cameraViewPoint)
+    public void SwitchToObjectView(GameObject cameraViewPoint)
     {
-        if (mainCamera != null) mainCamera.gameObject.SetActive(false);
-        if (objectCamera != null && cameraViewPoint != null)
-        {
-            objectCamera.transform.position = cameraViewPoint.transform.position;
-            objectCamera.transform.rotation = cameraViewPoint.transform.rotation;
-            objectCamera.gameObject.SetActive(true);
-        }
+        if (mainCamera == null || objectCamera == null) return;
+
+        mainCamera.gameObject.SetActive(false);
+        objectCamera.transform.position = cameraViewPoint.transform.position;
+        objectCamera.transform.rotation = cameraViewPoint.transform.rotation;
+        objectCamera.gameObject.SetActive(true);
     }
 
-    /// <summary>
-    /// Active la caméra principale et désactive la caméra d'objet.
-    /// </summary>
-    private void SwitchToMainView()
+    public void SwitchToMainView()
     {
-        if (mainCamera != null) mainCamera.gameObject.SetActive(true);
-        if (objectCamera != null) objectCamera.gameObject.SetActive(false);
+        if (mainCamera == null || objectCamera == null) return;
+        
+        mainCamera.gameObject.SetActive(true);
+        objectCamera.gameObject.SetActive(false);
     }
 }

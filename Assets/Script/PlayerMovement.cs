@@ -9,10 +9,17 @@ public class PlayerMovement : MonoBehaviour
 {
     private Quaternion desiredRotation;
     private bool shouldRotate = false;
-public GameObject previousGridCube; // Nouvelle variable pour tracker la tuile précédente
+    public GameObject previousGridCube; // Nouvelle variable pour tracker la tuile précédente
+
+[Header("Caméras")]
+public Camera mainCamera; 
+public Camera objectViewCamera;
 
     // --- Paramètres de Mouvement ---
     [Header("Paramètres de Mouvement")]
+
+    [Tooltip("Facteur de ralentissement global, si 1.0, pas de ralentissement.")]
+private float currentSpeedFactor = 1.0f; 
     [Tooltip("Vitesse de rotation du joueur.")]
 public float rotationSpeed = 10f;
     [Tooltip("Vitesse de déplacement horizontale de la boule.")]
@@ -62,6 +69,18 @@ public float rotationSpeed = 10f;
 
     private Coroutine scaleChangeCoroutine; // Pour gérer la coroutine de changement de taille
 
+    
+// ✅ AJOUTER ces variables dans la section "Mutation du joueur" de PlayerMovement.cs
+
+[Header("État Collant")]
+[Tooltip("Indique si le joueur est actuellement dans un état collant.")]
+public bool IsSticky = false;
+
+[Tooltip("Multiplicateur de délai pour les plaques qui tombent quand le joueur est collant.")]
+public float stickyFallDelayMultiplier = 1.0f;
+
+private Coroutine stickyEffectCoroutine; // Pour gérer la coroutine d'effet collant
+
 
     // --- Références et Grille ---
     [Header("Références Grille")]
@@ -94,6 +113,7 @@ public float rotationSpeed = 10f;
     public float shakeDuration = 0.1f;
     public float shakeMagnitude = 0.1f;
 
+private Vector3 initialCameraPosition;
     // --- NOUVEAU: Paramètres des Plaques Tombantes ---
     [Header("Plaques Tombantes")]
     public string fallingPlatformTag = "FallingPlatform";
@@ -412,7 +432,7 @@ void HandleInput()
             // Définir les tuiles qui ne doivent pas être des obstacles mais peuvent avoir un comportement spécial
             bool isTargetPoisonPit = targetCube.CompareTag("PoisonPit");
             bool isTargetShrinkTile = targetCube.CompareTag("ShrinkTile");
-            bool isTargetBoostedTile = targetCube.CompareTag("BoostedTile"); // J'ai ajouté le Tag de la tuile verte
+            bool isTargetBoostedTile = targetCube.CompareTag("StickyTile"); // J'ai ajouté le Tag de la tuile verte
             bool isTargetMutationWall = targetCube.CompareTag("MutationWall");
 
             // Vérifier si le chemin est valide et dans les limites de la portée
@@ -462,7 +482,7 @@ void HandleInput()
     if (newSelectedCube != null)
     {
         // Ne pas sélectionner visuellement les tuiles spéciales ou les murs de mutation
-        if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile") || newSelectedCube.CompareTag("MutationWall") || newSelectedCube.CompareTag("FallingPlatform")) 
+        if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile") || newSelectedCube.CompareTag("StickyTile") || newSelectedCube.CompareTag("FallingPlatform")) 
         {
             lastSelectedCube = null;
             return;
@@ -515,6 +535,30 @@ void HandleInput()
             StartCoroutine(ShakeScreen());
         }
     }
+
+    // Coroutine pour faire vibrer l'écran
+private IEnumerator ShakeScreen()
+{
+    // Sauvegarder la position initiale de la caméra
+    initialCameraPosition = mainCamera.transform.localPosition;
+    float elapsed = 0.0f;
+
+    while (elapsed < shakeDuration)
+    {
+        // Génère un vecteur de vibration aléatoire dans un cercle
+        float x = Random.Range(-1f, 1f) * shakeMagnitude;
+        float y = Random.Range(-1f, 1f) * shakeMagnitude;
+
+        // Applique la vibration à la position de la caméra
+        mainCamera.transform.localPosition = initialCameraPosition + new Vector3(x, y, 0);
+
+        elapsed += Time.deltaTime;
+        yield return null;
+    }
+
+    // Réinitialise la position de la caméra à sa position initiale après la vibration
+    mainCamera.transform.localPosition = initialCameraPosition;
+}
 
     List<GameObject> GetShortestPath(GameObject start, GameObject target)
     {
@@ -721,7 +765,9 @@ void StartNextJump()
             // ✅ MODIFICATION : Ne mettre à jour lastSafePosition que si ce n'est PAS une tuile réactive
             if (currentGridCube != null &&
                 !currentGridCube.CompareTag("PoisonPit") &&
+                !currentGridCube.CompareTag("StickyTile") &&
                 !currentGridCube.CompareTag("ShrinkTile"))
+                
             {
                 lastSafePosition = transform.position;
                 Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
@@ -910,6 +956,45 @@ public void ChangePlayerScale(float targetUniformScale, float holdDuration)
 
     // --- FIN NOUVELLES MÉTHODES POUR LA TAILLE DE LA BOULE ---
 
+    // ✅ NOUVELLE MÉTHODE : Pour activer/désactiver l'état collant
+public void SetStickyState(bool isSticky, float duration, float fallDelayMultiplier)
+{
+    // Arrête toute coroutine d'effet collant en cours
+    if (stickyEffectCoroutine != null)
+    {
+        StopCoroutine(stickyEffectCoroutine);
+    }
+
+    IsSticky = isSticky;
+    stickyFallDelayMultiplier = fallDelayMultiplier;
+
+    if (isSticky)
+    {
+        Debug.Log($"Le joueur devient collant pour {(duration > 0 ? duration.ToString() + " secondes" : "indéfiniment")} (multiplicateur: {fallDelayMultiplier}x)");
+        
+        // Si la durée est positive (non permanente), démarrer la coroutine pour désactiver l'effet
+        if (duration > 0)
+        {
+            stickyEffectCoroutine = StartCoroutine(StickyEffectTimer(duration));
+        }
+    }
+    else
+    {
+        Debug.Log("Le joueur n'est plus collant");
+        stickyFallDelayMultiplier = 1.0f; // Remet le multiplicateur par défaut
+    }
+}
+
+// ✅ NOUVELLE COROUTINE : Pour gérer la durée de l'effet collant
+private IEnumerator StickyEffectTimer(float duration)
+{
+    yield return new WaitForSeconds(duration);
+    
+    // Désactive l'effet collant après la durée spécifiée
+    SetStickyState(false, 0, 1.0f);
+    stickyEffectCoroutine = null;
+}
+
     void UpdatePathVisualization()
     {
         if (showPath && pathCalculated && path.Count > 0)
@@ -942,54 +1027,41 @@ void OnCollisionEnter(Collision collision)
 }
 
 
-    IEnumerator FallPlatform(GameObject platform)
+  // ✅ MODIFIER la méthode FallPlatform existante pour prendre en compte l'effet collant
+IEnumerator FallPlatform(GameObject platform)
+{
+    if (!platform.activeSelf)
     {
-        if (!platform.activeSelf)
-        {
-            yield break;
-        }
-
-        yield return new WaitForSeconds(fallDelay);
-
-        Vector3 startPos = platform.transform.position;
-        Vector3 endPos = platform.transform.position - Vector3.up * fallDistance;
-        float elapsed = 0f;
-
-        Collider platformCollider = platform.GetComponent<Collider>();
-        if (platformCollider != null)
-        {
-            platformCollider.enabled = false;
-        }
-
-        while (elapsed < fallDuration)
-        {
-            platform.transform.position = Vector3.Lerp(startPos, endPos, elapsed / fallDuration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        platform.transform.position = endPos;
-        platform.SetActive(false);
+        yield break;
     }
 
-    System.Collections.IEnumerator ShakeScreen()
+    // ✅ Appliquer le multiplicateur de délai si le joueur est collant
+    float adjustedFallDelay = fallDelay * (IsSticky ? stickyFallDelayMultiplier : 1.0f);
+    
+    Debug.Log($"Plaque qui tombe - Délai: {adjustedFallDelay}s (normal: {fallDelay}s, collant: {IsSticky})");
+    
+    yield return new WaitForSeconds(adjustedFallDelay);
+
+    Vector3 startPos = platform.transform.position;
+    Vector3 endPos = platform.transform.position - Vector3.up * fallDistance;
+    float elapsed = 0f;
+
+    Collider platformCollider = platform.GetComponent<Collider>();
+    if (platformCollider != null)
     {
-        Vector3 originalCameraLocalPosition = Camera.main.transform.localPosition;
-        float elapsed = 0f;
-
-        while (elapsed < shakeDuration)
-        {
-            float x = Random.Range(-1f, 1f) * shakeMagnitude;
-            float y = Random.Range(-1f, 1f) * shakeMagnitude;
-
-            Camera.main.transform.localPosition = originalCameraLocalPosition + new Vector3(x, y, 0);
-
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        Camera.main.transform.localPosition = originalCameraLocalPosition;
+        platformCollider.enabled = false;
     }
+
+    while (elapsed < fallDuration)
+    {
+        platform.transform.position = Vector3.Lerp(startPos, endPos, elapsed / fallDuration);
+        elapsed += Time.deltaTime;
+        yield return null;
+    }
+
+    platform.transform.position = endPos;
+    platform.SetActive(false);
+}
     
 
     void OnDrawGizmos()
