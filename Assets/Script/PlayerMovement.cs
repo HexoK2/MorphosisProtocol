@@ -956,34 +956,38 @@ public void ChangePlayerScale(float targetUniformScale, float holdDuration)
 
     // --- FIN NOUVELLES MÉTHODES POUR LA TAILLE DE LA BOULE ---
 
-    // ✅ NOUVELLE MÉTHODE : Pour activer/désactiver l'état collant
-public void SetStickyState(bool isSticky, float duration, float fallDelayMultiplier)
-{
-    // Arrête toute coroutine d'effet collant en cours
-    if (stickyEffectCoroutine != null)
+   // ✅ NOUVELLE MÉTHODE pour activer/désactiver l'effet collant
+    public void SetStickyState(bool state, float duration, float newStickyFallDelayMultiplier)
     {
-        StopCoroutine(stickyEffectCoroutine);
-    }
+        // On évite de relancer l'effet si il est déjà actif
+        if (IsSticky == state) return;
 
-    IsSticky = isSticky;
-    stickyFallDelayMultiplier = fallDelayMultiplier;
+        IsSticky = state;
+        stickyFallDelayMultiplier = newStickyFallDelayMultiplier;
 
-    if (isSticky)
-    {
-        Debug.Log($"Le joueur devient collant pour {(duration > 0 ? duration.ToString() + " secondes" : "indéfiniment")} (multiplicateur: {fallDelayMultiplier}x)");
-        
-        // Si la durée est positive (non permanente), démarrer la coroutine pour désactiver l'effet
-        if (duration > 0)
+        if (IsSticky)
         {
-            stickyEffectCoroutine = StartCoroutine(StickyEffectTimer(duration));
+            if (stickyEffectCoroutine != null)
+            {
+                StopCoroutine(stickyEffectCoroutine);
+            }
+            
+            if (duration > 0)
+            {
+                stickyEffectCoroutine = StartCoroutine(StickyEffectTimer(duration));
+            }
+        }
+        else
+        {
+            // Réinitialise le multiplicateur
+            stickyFallDelayMultiplier = 1.0f;
+            if (stickyEffectCoroutine != null)
+            {
+                StopCoroutine(stickyEffectCoroutine);
+            }
+            stickyEffectCoroutine = null;
         }
     }
-    else
-    {
-        Debug.Log("Le joueur n'est plus collant");
-        stickyFallDelayMultiplier = 1.0f; // Remet le multiplicateur par défaut
-    }
-}
 
 // ✅ NOUVELLE COROUTINE : Pour gérer la durée de l'effet collant
 private IEnumerator StickyEffectTimer(float duration)
@@ -1012,56 +1016,56 @@ private IEnumerator StickyEffectTimer(float duration)
         }
     }
 
-void OnCollisionEnter(Collision collision)
-{
-    if (collision.gameObject.CompareTag(fallingPlatformTag))
+    // ✅ MODIFICATION de la méthode OnCollisionEnter
+    void OnCollisionEnter(Collision collision)
     {
-        StartCoroutine(FallPlatform(collision.gameObject));
-    }
-    else if (collision.gameObject.CompareTag("PoisonPit") || collision.gameObject.CompareTag("ShrinkTile"))
-    {
-        // Respawn à la dernière position sûre
-        transform.position = lastSafePosition;
-        Debug.Log("Le joueur a touché une tuile dangereuse et respawn à la dernière position sûre.");
-    }
-}
-
-
-  // ✅ MODIFIER la méthode FallPlatform existante pour prendre en compte l'effet collant
-IEnumerator FallPlatform(GameObject platform)
-{
-    if (!platform.activeSelf)
-    {
-        yield break;
+        if (collision.gameObject.CompareTag(fallingPlatformTag))
+        {
+            StartCoroutine(FallPlatform(collision.gameObject));
+        }
+        else if (collision.gameObject.CompareTag("PoisonPit") || collision.gameObject.CompareTag("ShrinkTile"))
+        {
+            // Respawn à la dernière position sûre
+            transform.position = lastSafePosition;
+            Debug.Log("Le joueur a touché une tuile dangereuse et respawn à la dernière position sûre.");
+        }
     }
 
-    // ✅ Appliquer le multiplicateur de délai si le joueur est collant
-    float adjustedFallDelay = fallDelay * (IsSticky ? stickyFallDelayMultiplier : 1.0f);
-    
-    Debug.Log($"Plaque qui tombe - Délai: {adjustedFallDelay}s (normal: {fallDelay}s, collant: {IsSticky})");
-    
-    yield return new WaitForSeconds(adjustedFallDelay);
-
-    Vector3 startPos = platform.transform.position;
-    Vector3 endPos = platform.transform.position - Vector3.up * fallDistance;
-    float elapsed = 0f;
-
-    Collider platformCollider = platform.GetComponent<Collider>();
-    if (platformCollider != null)
+    // ✅ MODIFICATION de la méthode FallPlatform existante pour prendre en compte l'effet collant
+    IEnumerator FallPlatform(GameObject platform)
     {
-        platformCollider.enabled = false;
+        if (!platform.activeSelf)
+        {
+            yield break;
+        }
+
+        float adjustedFallDelay = fallDelay * (IsSticky ? stickyFallDelayMultiplier : 1.0f);
+        
+        Debug.Log($"Plaque qui tombe - Délai: {adjustedFallDelay}s (normal: {fallDelay}s, collant: {IsSticky})");
+        
+        yield return new WaitForSeconds(adjustedFallDelay);
+
+        Vector3 startPos = platform.transform.position;
+        Vector3 endPos = platform.transform.position - Vector3.up * fallDistance;
+        float elapsed = 0f;
+
+        Collider platformCollider = platform.GetComponent<Collider>();
+        if (platformCollider != null)
+        {
+            platformCollider.enabled = false;
+        }
+
+        while (elapsed < fallDuration)
+        {
+            platform.transform.position = Vector3.Lerp(startPos, endPos, elapsed / fallDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        platform.transform.position = endPos;
+        platform.SetActive(false);
     }
 
-    while (elapsed < fallDuration)
-    {
-        platform.transform.position = Vector3.Lerp(startPos, endPos, elapsed / fallDuration);
-        elapsed += Time.deltaTime;
-        yield return null;
-    }
-
-    platform.transform.position = endPos;
-    platform.SetActive(false);
-}
     
 
     void OnDrawGizmos()
