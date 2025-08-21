@@ -2,9 +2,10 @@ using UnityEngine;
 
 public class ObjectInfo : MonoBehaviour
 {
-    [Tooltip("Un GameObject vide qui définit la position et la rotation de la caméra pour cette vue.")]
+    [Tooltip("Le point de vue pour la caméra des objets.")]
     public GameObject cameraViewPoint;
 
-      // ✅ NOUVEAU : Référence au composant Animation de cet objet
-    public Animation animationComponent; 
+    // ✅ NOUVEAU : Une variable booléenne pour dire si cet objet a un panneau
+    [Tooltip("Cochez si cet objet doit afficher le panneau des documents.")]
+    public bool displaysDocumentPanel = false;
 }
