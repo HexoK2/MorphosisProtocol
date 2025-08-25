@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.UI;
+using System.Collections; // N'oublie pas d'ajouter cette ligne pour les coroutines
 
 public class CameraSwitcher : MonoBehaviour
 {
@@ -12,21 +12,28 @@ public class CameraSwitcher : MonoBehaviour
     [Tooltip("Le script de mouvement du joueur pour vérifier si la torche est équipée.")]
     public PlayerMovement playerMovement;
 
-    [Tooltip("Le Canvas qui affiche les documents.")]
+    [Header("Panneaux UI")]
+    [Tooltip("Le panneau de documents à afficher.")]
     public GameObject documentsCanvas;
-    // ✅ NOUVEAU : Référence au composant Animator du Canvas
+    [Tooltip("L'Animator du panneau de documents.")]
     public Animator documentsAnimator;
-    
+    [Tooltip("Le panneau de l'info-bulle.")]
+    public GameObject infoBubblePanel;
+
     void Start()
     {
+        // Initialisation des caméras et des panneaux au démarrage
         mainCamera.gameObject.SetActive(true);
         objectCamera.gameObject.SetActive(false);
         if (documentsCanvas != null)
         {
             documentsCanvas.SetActive(false);
         }
+        if (infoBubblePanel != null)
+        {
+            infoBubblePanel.SetActive(false);
+        }
     }
-
 
     void Update()
     {
@@ -42,7 +49,7 @@ public class CameraSwitcher : MonoBehaviour
                     ObjectInfo info = hit.collider.GetComponent<ObjectInfo>();
                     if (info != null && info.cameraViewPoint != null)
                     {
-                        // ✅ NOUVEAU : On passe le booléen à la méthode
+                        // On passe le booléen du panneau de documents
                         SwitchToObjectView(info.cameraViewPoint, info.displaysDocumentPanel);
                     }
                 }
@@ -55,17 +62,23 @@ public class CameraSwitcher : MonoBehaviour
         }
     }
 
-    // ✅ MODIFICATION : La méthode reçoit le booléen
     public void SwitchToObjectView(GameObject cameraViewPoint, bool displayPanel)
     {
         if (mainCamera == null || objectCamera == null) return;
         
+        // On désactive le panneau d'info-bulle directement pour qu'il disparaisse
+        if (infoBubblePanel != null)
+        {
+            infoBubblePanel.SetActive(false);
+        }
+
+        // On active la caméra de l'objet
         mainCamera.gameObject.SetActive(false);
         objectCamera.transform.position = cameraViewPoint.transform.position;
         objectCamera.transform.rotation = cameraViewPoint.transform.rotation;
         objectCamera.gameObject.SetActive(true);
         
-        // ✅ NOUVEAU : On vérifie si on doit activer le panneau
+        // On vérifie si on doit activer le panneau de documents
         if (displayPanel && documentsCanvas != null)
         {
             documentsCanvas.SetActive(true);
@@ -80,7 +93,7 @@ public class CameraSwitcher : MonoBehaviour
     {
         if (mainCamera == null || objectCamera == null) return;
         
-        // ✅ NOUVEAU : On désactive le panneau si il est actif
+        // On désactive le panneau de documents si il est actif
         if (documentsCanvas != null && documentsCanvas.activeSelf)
         {
             if (documentsAnimator != null)
@@ -94,7 +107,7 @@ public class CameraSwitcher : MonoBehaviour
         mainCamera.gameObject.SetActive(true);
     }
 
-    private System.Collections.IEnumerator DeactivateCanvasAfterAnimation(float delay)
+    private IEnumerator DeactivateCanvasAfterAnimation(float delay)
     {
         yield return new WaitForSeconds(delay);
         if (documentsCanvas != null)

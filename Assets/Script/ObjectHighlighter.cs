@@ -1,184 +1,94 @@
 using UnityEngine;
 using System.Collections.Generic;
-using TMPro; // N'oublie pas d'ajouter cette ligne pour les messages TextMeshPro.
+using TMPro;
 
 public class ObjectHighlighter : MonoBehaviour
 {
-    [Tooltip("Le LayerMask des objets que ce script peut surligner.")]
-    public LayerMask highlightableLayers;
+    [Tooltip("Le LayerMask des objets que ce script peut interagir.")]
+    public LayerMask interactiveLayers;
 
-    [Tooltip("Le Material à utiliser pour la surbrillance.")]
-    public Material highlightMaterial;
+    [Header("UI")]
+    [Tooltip("Le panneau (GameObject) de l'info-bulle.")]
+    public GameObject infoBubblePanel;
+    // ✅ NOUVEAU : Référence au titre et à la description
+    [Tooltip("Le TextMeshPro qui affichera le titre.")]
+    public TextMeshProUGUI infoTitleText;
+    [Tooltip("Le TextMeshPro qui affichera la description.")]
+    public TextMeshProUGUI infoDescriptionText;
 
-    [Tooltip("La distance maximale de détection du Raycast.")]
-    public float maxDetectionDistance = 100f;
+    [Tooltip("Décalage du panneau par rapport à la souris.")]
+    public Vector3 mouseOffset = new Vector3(50, -50, 0); // Décale de 50px à droite et 50px vers le bas
 
-    [Header("Conditions pour l'interaction")]
-    [Tooltip("Référence au script PlayerMovement pour vérifier la torche.")]
-    public PlayerMovement playerMovement;
-
-    [Tooltip("Référence au script TypewriterEffect pour animer le message 'Pas de lumière'.")]
-    public TypewriterEffect noLightMessageEffect;
-
-    [Tooltip("Durée d'affichage du message 'Je ne peux rien voir...'")]
-    public float messageDisplayDuration = 2.0f;
-
-    // L'objet actuellement survolé.
-    private GameObject currentHighlightedObject = null;
-    
-    // Dictionnaire pour stocker les matériaux d'origine de chaque objet survolé.
-    private Dictionary<GameObject, Material[]> originalMaterialsMap = new Dictionary<GameObject, Material[]>();
-    
-    // Variables pour gérer l'affichage du message de warning
-    private float messageTimer = 0f;
-    private bool isMessageShowing = false;
+    private GameObject currentHoveredObject = null;
 
     void Start()
     {
-        // Vérification des références
-        if (playerMovement == null)
+        if (infoBubblePanel == null || infoTitleText == null || infoDescriptionText == null)
         {
-            Debug.LogError("PlayerMovement script non trouvé ! Assurez-vous qu'il existe et est assigné dans l'Inspecteur.");
+            Debug.LogError("Le panneau ou les textes de l'info-bulle ne sont pas assignés !");
             enabled = false;
+            return;
         }
-        if (noLightMessageEffect == null)
-        {
-            Debug.LogError("TypewriterEffect pour le message de warning non assigné ! Assurez-vous de le glisser depuis la scène.");
-            enabled = false;
-        }
-        else
-        {
-            noLightMessageEffect.HideText();
-        }
+        infoBubblePanel.SetActive(false);
     }
 
     void Update()
     {
-        // --- LOGIQUE DE GESTION DU MESSAGE DE WARNING ---
-        if (isMessageShowing)
-        {
-            messageTimer -= Time.deltaTime;
-            // Cache le message si le temps est écoulé
-            if (messageTimer <= 0f)
-            {
-                HideMessage();
-            }
-        }
-        
-        // --- LOGIQUE DE SURBRILLANCE AU SURVOL (Raycast) ---
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
-        GameObject hitObject = null;
 
-        if (Physics.Raycast(ray, out hit, maxDetectionDistance, highlightableLayers))
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, interactiveLayers))
         {
-            hitObject = hit.collider.gameObject;
-        }
+            GameObject hitObject = hit.collider.gameObject;
+            ObjectInfo info = hitObject.GetComponent<ObjectInfo>();
 
-        if (hitObject != currentHighlightedObject)
-        {
-            ResetHighlight();
-            if (hitObject != null)
+            if (info != null && info.infoTitle != "" && info.infoDescription != "")
             {
-                ApplyHighlight(hitObject);
-            }
-        }
-
-        // --- LOGIQUE D'INTERACTION (Clic de souris) ---
-        if (Input.GetMouseButtonDown(0) && hitObject != null)
-        {
-            // Si le joueur n'a pas la torche
-            if (playerMovement != null && !playerMovement.hasTorch)
-            {
-                ShowMessage("I can't see anything without light...");
-                // On met la logique de l'effet d'écriture ici, si tu en as une.
+                ShowInfoBubble(info.infoTitle, info.infoDescription);
+                currentHoveredObject = hitObject;
             }
             else
             {
-                // Le joueur clique sur un objet AVEC la torche, donc on peut agir.
-                Debug.Log("Le joueur interagit avec " + hitObject.name + " AVEC la torche !");
-                HideMessage(); // Cache le message si jamais il était affiché.
+                HideInfoBubble();
             }
         }
-    }
-
-    /// <summary>
-    /// Applique le matériau de surbrillance à un objet.
-    /// </summary>
-    private void ApplyHighlight(GameObject objToHighlight)
-    {
-        // ... (Le code de cette méthode reste inchangé) ...
-        Renderer objRenderer = objToHighlight.GetComponent<Renderer>();
-        if (objRenderer == null) return;
-
-        if (!originalMaterialsMap.ContainsKey(objToHighlight))
+        else
         {
-            originalMaterialsMap.Add(objToHighlight, objRenderer.materials);
+            HideInfoBubble();
         }
 
-        Material[] newMaterials = new Material[objRenderer.materials.Length];
-        for (int i = 0; i < newMaterials.Length; i++)
-        {
-            newMaterials[i] = highlightMaterial;
-        }
+        // ✅ NOUVEAU : On fait suivre le panneau avec le décalage
+        infoBubblePanel.transform.position = Input.mousePosition + mouseOffset;
+    }
+    
+    
 
-        objRenderer.materials = newMaterials;
-        currentHighlightedObject = objToHighlight;
+    // ✅ MODIFICATION : La méthode reçoit le titre et la description
+    private void ShowInfoBubble(string title, string description)
+    {
+        infoBubblePanel.SetActive(true);
+        infoTitleText.text = title;
+        infoDescriptionText.text = description;
     }
 
-    /// <summary>
-    /// Réinitialise l'objet survolé à ses matériaux d'origine.
-    /// </summary>
-    private void ResetHighlight()
+    // ✅ NOUVEAU : Une méthode publique pour afficher l'info-bulle
+    public void ShowInfoOnHover(string title, string description)
     {
-        // ... (Le code de cette méthode reste inchangé) ...
-        if (currentHighlightedObject != null)
+        // On s'assure que le panel est activé
+        infoBubblePanel.SetActive(true);
+        // On met à jour les textes
+        infoTitleText.text = title;
+        infoDescriptionText.text = description;
+    }
+
+    // ✅ NOUVEAU : Une méthode publique pour cacher l'info-bulle
+    public void HideInfoBubble()
+    {
+        if (infoBubblePanel.activeSelf)
         {
-            Renderer objRenderer = currentHighlightedObject.GetComponent<Renderer>();
-            
-            if (objRenderer != null && originalMaterialsMap.ContainsKey(currentHighlightedObject))
-            {
-                objRenderer.materials = originalMaterialsMap[currentHighlightedObject];
-                originalMaterialsMap.Remove(currentHighlightedObject);
-            }
-            currentHighlightedObject = null;
+            infoBubblePanel.SetActive(false);
         }
     }
 
-    /// <summary>
-    /// Affiche le message de warning.
-    /// </summary>
-    /// <param name="message">Le texte à afficher.</param>
-    private void ShowMessage(string message)
-    {
-        if (noLightMessageEffect != null)
-        {
-            noLightMessageEffect.gameObject.SetActive(true);
-            noLightMessageEffect.fullTextToDisplay = message;
-            noLightMessageEffect.StartTypewriterEffect();
-            isMessageShowing = true;
-            messageTimer = messageDisplayDuration;
-        }
-    }
 
-    /// <summary>
-    /// Cache le message de warning.
-    /// </summary>
-    private void HideMessage()
-    {
-        if (noLightMessageEffect != null)
-        {
-            noLightMessageEffect.HideText();
-            isMessageShowing = false;
-        }
-    }
-
-    /// <summary>
-    /// S'assure de nettoyer la surbrillance et le message quand le script est désactivé.
-    /// </summary>
-    void OnDisable()
-    {
-        ResetHighlight();
-        HideMessage();
-    }
 }
