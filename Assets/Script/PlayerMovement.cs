@@ -70,7 +70,8 @@ public float rotationSpeed = 10f;
     private Coroutine scaleChangeCoroutine; // Pour gérer la coroutine de changement de taille
 
     
-// ✅ AJOUTER ces variables dans la section "Mutation du joueur" de PlayerMovement.cs
+
+// ✅ AJOUTER ces nouvelles variables dans la section "État Collant" de PlayerMovement.cs
 
 [Header("État Collant")]
 [Tooltip("Indique si le joueur est actuellement dans un état collant.")]
@@ -79,7 +80,14 @@ public bool IsSticky = false;
 [Tooltip("Multiplicateur de délai pour les plaques qui tombent quand le joueur est collant.")]
 public float stickyFallDelayMultiplier = 1.0f;
 
-private Coroutine stickyEffectCoroutine; // Pour gérer la coroutine d'effet collant
+// ✅ NOUVELLES VARIABLES pour l'effet sur les sauts
+[Tooltip("Multiplicateur de vitesse de saut quand le joueur est collant (0.5f = 50% plus lent).")]
+public float stickyJumpSpeedMultiplier = 0.5f;
+
+[Tooltip("Multiplicateur de durée de saut quand le joueur est collant (2.0f = 2x plus long).")]
+public float stickyJumpDurationMultiplier = 2.0f;
+
+private Coroutine stickyEffectCoroutine;
 
 
     // --- Références et Grille ---
@@ -743,69 +751,76 @@ void StartNextJump()
 
 
 
-    void PerformJump()
+// ✅ MODIFIER la méthode PerformJump existante
+void PerformJump()
+{
+    // ✅ MODIFICATION : Appliquer les multiplicateurs collants
+    float currentJumpDuration = jumpDuration * (IsSticky ? stickyJumpDurationMultiplier : 1.0f);
+    float currentHorizontalSpeed = horizontalSpeed * (IsSticky ? stickyJumpSpeedMultiplier : 1.0f);
+    
+    jumpTimer += Time.fixedDeltaTime;
+    float progress = jumpTimer / currentJumpDuration; // ✅ Utilise la durée modifiée
+
+    if (progress >= 1f)
     {
-        jumpTimer += Time.fixedDeltaTime;
-        float progress = jumpTimer / jumpDuration;
+        transform.position = targetJumpPosition + Vector3.up * verticalOffsetOnGround;
+        rb.linearVelocity = Vector3.zero;
+        isJumping = false;
 
-        if (progress >= 1f)
+        // ✅ NOUVEAU : Sauvegarder la tuile actuelle comme tuile précédente AVANT de changer
+        previousGridCube = currentGridCube;
+
+        currentGridCube = FindNearestGridCube(transform.position);
+        if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
+
+        currentPathIndex++;
+
+        // ✅ MODIFICATION : Ne mettre à jour lastSafePosition que si ce n'est PAS une tuile réactive
+        if (currentGridCube != null &&
+            !currentGridCube.CompareTag("PoisonPit") &&
+            !currentGridCube.CompareTag("StickyTile") &&
+            !currentGridCube.CompareTag("ShrinkTile"))
         {
-            transform.position = targetJumpPosition + Vector3.up * verticalOffsetOnGround;
-            rb.linearVelocity = Vector3.zero;
-            isJumping = false;
-
-            // ✅ NOUVEAU : Sauvegarder la tuile actuelle comme tuile précédente AVANT de changer
-            previousGridCube = currentGridCube;
-
-            currentGridCube = FindNearestGridCube(transform.position);
-            if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
-
-            currentPathIndex++;
-
-            // ✅ MODIFICATION : Ne mettre à jour lastSafePosition que si ce n'est PAS une tuile réactive
-            if (currentGridCube != null &&
-                !currentGridCube.CompareTag("PoisonPit") &&
-                !currentGridCube.CompareTag("StickyTile") &&
-                !currentGridCube.CompareTag("ShrinkTile"))
-                
-            {
-                lastSafePosition = transform.position;
-                Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
-            }
-
-            if (currentPathIndex >= path.Count)
-            {
-                pathCalculated = false;
-                path.Clear();
-                lr.positionCount = 0;
-                rb.linearVelocity = Vector3.zero;
-                transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
-                ResetAllCellMaterials();
-                Debug.Log("Path completed.");
-            }
+            lastSafePosition = transform.position;
+            Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
         }
-        else
+
+        if (currentPathIndex >= path.Count)
         {
-            Vector3 currentPosHorizontal = Vector3.Lerp(
-                new Vector3(startJumpPosition.x, 0, startJumpPosition.z),
-                new Vector3(targetJumpPosition.x, 0, targetJumpPosition.z),
-                progress
-            );
-
-            float yInterpolated = Mathf.Lerp(startJumpPosition.y, targetJumpPosition.y + verticalOffsetOnGround, progress);
-            float yParabolaOffset = jumpHeight * (4f * progress * (1f - progress));
-
-            rb.MovePosition(new Vector3(currentPosHorizontal.x, yInterpolated + yParabolaOffset, currentPosHorizontal.z));
-
-            Vector3 direction = (targetJumpPosition - transform.position);
-            direction.y = 0f;
-            if (direction != Vector3.zero)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
-            }
+            pathCalculated = false;
+            path.Clear();
+            lr.positionCount = 0;
+            rb.linearVelocity = Vector3.zero;
+            transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
+            ResetAllCellMaterials();
+            Debug.Log("Path completed.");
         }
     }
+    else
+    {
+        // ✅ MODIFICATION : Utiliser la vitesse horizontale modifiée pour l'interpolation
+        Vector3 currentPosHorizontal = Vector3.Lerp(
+            new Vector3(startJumpPosition.x, 0, startJumpPosition.z),
+            new Vector3(targetJumpPosition.x, 0, targetJumpPosition.z),
+            progress
+        );
+
+        float yInterpolated = Mathf.Lerp(startJumpPosition.y, targetJumpPosition.y + verticalOffsetOnGround, progress);
+        float yParabolaOffset = jumpHeight * (4f * progress * (1f - progress));
+
+        rb.MovePosition(new Vector3(currentPosHorizontal.x, yInterpolated + yParabolaOffset, currentPosHorizontal.z));
+
+        Vector3 direction = (targetJumpPosition - transform.position);
+        direction.y = 0f;
+        if (direction != Vector3.zero)
+        {
+            // ✅ MODIFICATION : Appliquer aussi le ralentissement à la rotation
+            float currentRotationSpeed = rotationSpeed * (IsSticky ? stickyJumpSpeedMultiplier : 1.0f);
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, currentRotationSpeed * Time.fixedDeltaTime);
+        }
+    }
+}
 
 // ✅ NOUVELLE MÉTHODE : Pour revenir à la tuile précédente
 public void ReturnToPreviousTile()
@@ -956,38 +971,42 @@ public void ChangePlayerScale(float targetUniformScale, float holdDuration)
 
     // --- FIN NOUVELLES MÉTHODES POUR LA TAILLE DE LA BOULE ---
 
-   // ✅ NOUVELLE MÉTHODE pour activer/désactiver l'effet collant
-    public void SetStickyState(bool state, float duration, float newStickyFallDelayMultiplier)
+ // ✅ MODIFIER la méthode SetStickyState existante pour inclure un feedback visuel
+public void SetStickyState(bool state, float duration, float newStickyFallDelayMultiplier)
+{
+    // On évite de relancer l'effet si il est déjà actif
+    if (IsSticky == state) return;
+
+    IsSticky = state;
+    stickyFallDelayMultiplier = newStickyFallDelayMultiplier;
+
+    // ✅ AJOUT : Feedback de debug amélioré
+    if (IsSticky)
     {
-        // On évite de relancer l'effet si il est déjà actif
-        if (IsSticky == state) return;
-
-        IsSticky = state;
-        stickyFallDelayMultiplier = newStickyFallDelayMultiplier;
-
-        if (IsSticky)
+        Debug.Log($"🟢 EFFET COLLANT ACTIVÉ ! Vitesse: {stickyJumpSpeedMultiplier}x, Durée: {stickyJumpDurationMultiplier}x");
+        
+        if (stickyEffectCoroutine != null)
         {
-            if (stickyEffectCoroutine != null)
-            {
-                StopCoroutine(stickyEffectCoroutine);
-            }
-            
-            if (duration > 0)
-            {
-                stickyEffectCoroutine = StartCoroutine(StickyEffectTimer(duration));
-            }
+            StopCoroutine(stickyEffectCoroutine);
         }
-        else
+        
+        if (duration > 0)
         {
-            // Réinitialise le multiplicateur
-            stickyFallDelayMultiplier = 1.0f;
-            if (stickyEffectCoroutine != null)
-            {
-                StopCoroutine(stickyEffectCoroutine);
-            }
-            stickyEffectCoroutine = null;
+            stickyEffectCoroutine = StartCoroutine(StickyEffectTimer(duration));
         }
     }
+    else
+    {
+        Debug.Log("🔴 EFFET COLLANT DÉSACTIVÉ");
+        // Réinitialise le multiplicateur
+        stickyFallDelayMultiplier = 1.0f;
+        if (stickyEffectCoroutine != null)
+        {
+            StopCoroutine(stickyEffectCoroutine);
+        }
+        stickyEffectCoroutine = null;
+    }
+}
 
 // ✅ NOUVELLE COROUTINE : Pour gérer la durée de l'effet collant
 private IEnumerator StickyEffectTimer(float duration)

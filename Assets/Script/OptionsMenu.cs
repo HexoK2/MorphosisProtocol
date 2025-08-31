@@ -1,145 +1,174 @@
 using UnityEngine;
-using UnityEngine.Audio;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using UnityEngine.Audio;
 using System.Collections.Generic;
 using System.Linq;
-using TMPro;
 
 public class OptionsMenu : MonoBehaviour
 {
-    // Références à l'AudioMixer et aux paramètres exposés
-    [Header("Paramètres Audio")]
-    public AudioMixer masterMixer;
-    public string sfxVolumeParameter = "SFXVolume";
-    public string musicVolumeParameter = "MusicVolume";
-
-    // Références aux éléments d'UI
-    [Header("Éléments d'UI")]
-    public Dropdown qualityDropdown;
-    public TMPro.TMP_Dropdown resolutionDropdown;
-    public Slider sfxVolumeSlider;
+    [Header("Références UI")]
+    public Button backButton;
+    public Slider masterVolumeSlider;
     public Slider musicVolumeSlider;
-    public TMPro.TextMeshProUGUI musicVolumeText;
-    public GameObject optionsPanel;
+    public Slider sfxVolumeSlider;
+    public Toggle fullscreenToggle;
+    public Dropdown resolutionDropdown;
+    public GameObject optionsMenuUI; // Référence au GameObject de ton menu d'options
+    public GameObject pauseMenuUI; // Référence au GameObject du menu pause
+    
 
-    // Référence au panneau du menu principal
-    public GameObject mainMenuPanel;
+    [Header("Audio")]
+    public AudioMixer audioMixer;
 
-    // Variables pour les résolutions
+    [Header("Configuration")]
+    public string defaultReturnScene = "MainMenu";
+
     private Resolution[] resolutions;
 
-    private void Start()
+    void Start()
     {
-        SetupResolutionDropdown();
+        SetupButtons();
+        SetupAudioOptions();
+        SetupGraphicsOptions();
         LoadSettings();
     }
 
-    private void SetupResolutionDropdown()
+    void SetupButtons()
     {
-        resolutions = Screen.resolutions;
-        resolutions = resolutions.Where(r => r.width / (float)r.height > 1.7f && r.width / (float)r.height < 1.8f).ToArray();
-        
-        resolutionDropdown.ClearOptions();
-        
-        List<string> options = new List<string>();
-        int currentResolutionIndex = 0;
-
-        for (int i = 0; i < resolutions.Length; i++)
+        if (backButton != null)
         {
-            string option = resolutions[i].width + " x " + resolutions[i].height;
-            options.Add(option);
-
-            if (resolutions[i].width == Screen.currentResolution.width &&
-                resolutions[i].height == Screen.currentResolution.height)
-            {
-                currentResolutionIndex = i;
-            }
+            backButton.onClick.AddListener(GoBack);
         }
-        
-        resolutionDropdown.AddOptions(options);
-        resolutionDropdown.value = currentResolutionIndex;
-        resolutionDropdown.RefreshShownValue();
     }
-    
-    public void LoadSettings()
+
+    void SetupAudioOptions()
     {
-        float sfxVolume;
-        if (masterMixer.GetFloat(sfxVolumeParameter, out sfxVolume))
+        if (masterVolumeSlider != null)
         {
-            sfxVolumeSlider.value = Mathf.Pow(10, sfxVolume / 20);
+            masterVolumeSlider.onValueChanged.AddListener(SetMasterVolume);
         }
-
-        float musicVolume;
-        if (masterMixer.GetFloat(musicVolumeParameter, out musicVolume))
+        if (musicVolumeSlider != null)
         {
-            musicVolumeSlider.value = Mathf.Pow(10, musicVolume / 20);
+            musicVolumeSlider.onValueChanged.AddListener(SetMusicVolume);
         }
-        
-        UpdateMusicVolumeText(musicVolumeSlider.value); 
-
-        qualityDropdown.value = QualitySettings.GetQualityLevel();
-        qualityDropdown.RefreshShownValue();
+        if (sfxVolumeSlider != null)
+        {
+            sfxVolumeSlider.onValueChanged.AddListener(SetSFXVolume);
+        }
     }
-    
+
+    public void SetMasterVolume(float volume)
+    {
+        if (audioMixer != null) audioMixer.SetFloat("MasterVolume", Mathf.Log10(volume) * 20);
+    }
+
     public void SetMusicVolume(float volume)
     {
-        float safeVolume = Mathf.Clamp(volume, 0.0001f, 1f);
-        masterMixer.SetFloat(musicVolumeParameter, Mathf.Log10(safeVolume) * 20f);
-        UpdateMusicVolumeText(volume);
+        if (audioMixer != null) audioMixer.SetFloat("MusicVolume", Mathf.Log10(volume) * 20);
     }
 
     public void SetSFXVolume(float volume)
     {
-        float safeVolume = Mathf.Clamp(volume, 0.0001f, 1f);
-        masterMixer.SetFloat(sfxVolumeParameter, Mathf.Log10(safeVolume) * 20f);
-    }
-    
-    public void UpdateMusicVolumeText(float volume)
-    {
-        int percent = Mathf.RoundToInt(volume * 100);
-        musicVolumeText.text = percent + "%";
+        if (audioMixer != null) audioMixer.SetFloat("SFXVolume", Mathf.Log10(volume) * 20);
     }
 
-    public void SetQuality(int qualityIndex)
+    void SetupGraphicsOptions()
     {
-        QualitySettings.SetQualityLevel(qualityIndex);
+        if (resolutionDropdown != null)
+        {
+            resolutions = Screen.resolutions.Where(res => res.refreshRateRatio.value == Screen.currentResolution.refreshRateRatio.value).ToArray();
+            resolutionDropdown.ClearOptions();
+            List<string> options = new List<string>();
+            int currentResolutionIndex = 0;
+
+            for (int i = 0; i < resolutions.Length; i++)
+            {
+                string option = resolutions[i].width + " x " + resolutions[i].height;
+                options.Add(option);
+                if (resolutions[i].width == Screen.currentResolution.width && resolutions[i].height == Screen.currentResolution.height)
+                {
+                    currentResolutionIndex = i;
+                }
+            }
+            resolutionDropdown.AddOptions(options);
+            resolutionDropdown.value = currentResolutionIndex;
+            resolutionDropdown.RefreshShownValue();
+            resolutionDropdown.onValueChanged.AddListener(SetResolution);
+        }
+        if (fullscreenToggle != null)
+        {
+            fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
+        }
     }
 
     public void SetResolution(int resolutionIndex)
     {
         Resolution resolution = resolutions[resolutionIndex];
         Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
+        PlayerPrefs.SetInt("ResolutionIndex", resolutionIndex);
     }
 
-    // Méthode pour le bouton "Apply"
-    public void ApplyAndClose()
+    public void SetFullscreen(bool isFullscreen)
     {
-        // On pourrait ajouter ici des lignes pour sauvegarder les paramètres si nécessaire
-        
-        // Ferme le panneau d'options
-        if (optionsPanel != null)
-        {
-            optionsPanel.SetActive(false);
-        }
+        Screen.fullScreen = isFullscreen;
+        PlayerPrefs.SetInt("Fullscreen", isFullscreen ? 1 : 0);
+    }
 
-        // Active le panneau du menu principal
-        if (mainMenuPanel != null)
-        {
-            mainMenuPanel.SetActive(true);
-        }
+    public void ResetSettings()
+    {
+        if (masterVolumeSlider != null) masterVolumeSlider.value = 0.75f;
+        if (musicVolumeSlider != null) musicVolumeSlider.value = 0.75f;
+        if (sfxVolumeSlider != null) sfxVolumeSlider.value = 0.75f;
+        if (fullscreenToggle != null) fullscreenToggle.isOn = true;
+        
+        PlayerPrefs.DeleteAll();
+        Debug.Log("Paramètres réinitialisés. Redémarrez le jeu pour voir les changements.");
     }
     
-    // Méthode pour ouvrir le menu d'options
-    public void OpenOptions()
+    void LoadSettings()
     {
-        if (optionsPanel != null)
+        if (masterVolumeSlider != null)
         {
-            optionsPanel.SetActive(true);
+            float volume = PlayerPrefs.GetFloat("MasterVolume", 0.75f);
+            masterVolumeSlider.value = volume;
+            SetMasterVolume(volume);
         }
-        // S'assurer que le menu principal est désactivé
-        if (mainMenuPanel != null)
+        if (musicVolumeSlider != null)
         {
-            mainMenuPanel.SetActive(false);
+            float volume = PlayerPrefs.GetFloat("MusicVolume", 0.75f);
+            musicVolumeSlider.value = volume;
+            SetMusicVolume(volume);
+        }
+        if (sfxVolumeSlider != null)
+        {
+            float volume = PlayerPrefs.GetFloat("SFXVolume", 0.75f);
+            sfxVolumeSlider.value = volume;
+            SetSFXVolume(volume);
+        }
+        if (fullscreenToggle != null)
+        {
+            bool isFullscreen = PlayerPrefs.GetInt("Fullscreen", 1) == 1;
+            fullscreenToggle.isOn = isFullscreen;
+            SetFullscreen(isFullscreen);
+        }
+        if (resolutionDropdown != null)
+        {
+            int resIndex = PlayerPrefs.GetInt("ResolutionIndex", 0);
+            resolutionDropdown.value = resIndex;
+        }
+    }
+
+    // === NAVIGATION ===
+    public void GoBack()
+    {
+        if (optionsMenuUI != null)
+        {
+            optionsMenuUI.SetActive(false); // Cache le menu d'options
+        }
+        if (pauseMenuUI != null)
+        {
+            pauseMenuUI.SetActive(true); // Affiche le menu pause
         }
     }
 }
