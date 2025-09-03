@@ -11,7 +11,7 @@ Morphosis is a 3D isometric arcade-puzzle game with platforming and survival ele
 **Title:** Morphosis  
 **Genre:** Single-player, 3D Arcade-Puzzle, Platformer, Survival  
 **Target Platforms:** PC (Windows, macOS, Linux), Android (optional)  
-**Playtime:** Short levels (3–5 minutes), full game estimated at 2–3 hours (20–30 levels)  
+**Playtime:** Short levels (3–5 minutes), full game estimated at 1–2 hours (10-15 levels  
 **Target Audience:** Casual players, puzzle and platforming fans, people who enjoy unique mechanics and experimentation
 
 ### 🌟 Unique Selling Proposition (USP)
