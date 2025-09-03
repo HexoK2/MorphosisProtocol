@@ -11,17 +11,17 @@ public class PlayerMovement : MonoBehaviour
     private bool shouldRotate = false;
     public GameObject previousGridCube; // Nouvelle variable pour tracker la tuile précédente
 
-[Header("Caméras")]
-public Camera mainCamera; 
-public Camera objectViewCamera;
+    [Header("Caméras")]
+    public Camera mainCamera;
+    public Camera objectViewCamera;
 
     // --- Paramètres de Mouvement ---
     [Header("Paramètres de Mouvement")]
 
     [Tooltip("Facteur de ralentissement global, si 1.0, pas de ralentissement.")]
-private float currentSpeedFactor = 1.0f; 
+    private float currentSpeedFactor = 1.0f;
     [Tooltip("Vitesse de rotation du joueur.")]
-public float rotationSpeed = 10f;
+    public float rotationSpeed = 10f;
     [Tooltip("Vitesse de déplacement horizontale de la boule.")]
     public float horizontalSpeed = 5f;
     [Tooltip("Hauteur maximale du saut.")]
@@ -42,12 +42,12 @@ public float rotationSpeed = 10f;
     [Tooltip("Taille du joueur lorsqu'il est boosté par un réactif (tuile verte).")]
     public float boostedScale = 1.5f;
     [Tooltip("Taille du joueur lorsqu'il est réduit par un réactif (tuile jaune).")]
-    public float shrunkScale = 0.5f; 
+    public float shrunkScale = 0.5f;
     [Tooltip("Durée de la transition de taille (agrandissement ou réduction).")]
     public float scaleTransitionDuration = 0.3f;
     [Tooltip("Durée par défaut pendant laquelle le joueur reste à taille augmentée (pour les tuiles réactives).")]
-    public float defaultBoostedDuration = 5.0f; 
-    
+    public float defaultBoostedDuration = 5.0f;
+
     // --- NOUVEAU: Paramètres de Mutation (Petit/Grand) ---
     [Header("Mutation du joueur")]
     [Tooltip("Indique si le joueur est actuellement dans sa forme 'petite'.")]
@@ -69,25 +69,25 @@ public float rotationSpeed = 10f;
 
     private Coroutine scaleChangeCoroutine; // Pour gérer la coroutine de changement de taille
 
-    
 
-// ✅ AJOUTER ces nouvelles variables dans la section "État Collant" de PlayerMovement.cs
 
-[Header("État Collant")]
-[Tooltip("Indique si le joueur est actuellement dans un état collant.")]
-public bool IsSticky = false;
+    // ✅ AJOUTER ces nouvelles variables dans la section "État Collant" de PlayerMovement.cs
 
-[Tooltip("Multiplicateur de délai pour les plaques qui tombent quand le joueur est collant.")]
-public float stickyFallDelayMultiplier = 1.0f;
+    [Header("État Collant")]
+    [Tooltip("Indique si le joueur est actuellement dans un état collant.")]
+    public bool IsSticky = false;
 
-// ✅ NOUVELLES VARIABLES pour l'effet sur les sauts
-[Tooltip("Multiplicateur de vitesse de saut quand le joueur est collant (0.5f = 50% plus lent).")]
-public float stickyJumpSpeedMultiplier = 0.5f;
+    [Tooltip("Multiplicateur de délai pour les plaques qui tombent quand le joueur est collant.")]
+    public float stickyFallDelayMultiplier = 1.0f;
 
-[Tooltip("Multiplicateur de durée de saut quand le joueur est collant (2.0f = 2x plus long).")]
-public float stickyJumpDurationMultiplier = 2.0f;
+    // ✅ NOUVELLES VARIABLES pour l'effet sur les sauts
+    [Tooltip("Multiplicateur de vitesse de saut quand le joueur est collant (0.5f = 50% plus lent).")]
+    public float stickyJumpSpeedMultiplier = 0.5f;
 
-private Coroutine stickyEffectCoroutine;
+    [Tooltip("Multiplicateur de durée de saut quand le joueur est collant (2.0f = 2x plus long).")]
+    public float stickyJumpDurationMultiplier = 2.0f;
+
+    private Coroutine stickyEffectCoroutine;
 
 
     // --- Références et Grille ---
@@ -121,7 +121,7 @@ private Coroutine stickyEffectCoroutine;
     public float shakeDuration = 0.1f;
     public float shakeMagnitude = 0.1f;
 
-private Vector3 initialCameraPosition;
+    private Vector3 initialCameraPosition;
     // --- NOUVEAU: Paramètres des Plaques Tombantes ---
     [Header("Plaques Tombantes")]
     public string fallingPlatformTag = "FallingPlatform";
@@ -132,7 +132,7 @@ private Vector3 initialCameraPosition;
     // --- NOUVEAU: Gestion de l'équipement ---
     [Header("Gestion de l'équipement")]
     [Tooltip("Indique si le joueur a actuellement une torche. Cochez cette case pour simuler la possession de la torche.")]
-    public bool hasTorch = false; 
+    public bool hasTorch = false;
 
     public Rigidbody rb;
     public LineRenderer lr;
@@ -234,19 +234,19 @@ private Vector3 initialCameraPosition;
             ToggleMutation();
         }
         if (shouldRotate)
-{
-    transform.rotation = Quaternion.RotateTowards(transform.rotation, desiredRotation, rotationSpeed * Time.deltaTime);
+        {
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, desiredRotation, rotationSpeed * Time.deltaTime);
 
-    // Si la rotation est quasiment atteinte, on arrête
-    if (Quaternion.Angle(transform.rotation, desiredRotation) < 0.1f)
-    {
-        transform.rotation = desiredRotation;
-        shouldRotate = false;
-    }
-}
+            // Si la rotation est quasiment atteinte, on arrête
+            if (Quaternion.Angle(transform.rotation, desiredRotation) < 0.1f)
+            {
+                transform.rotation = desiredRotation;
+                shouldRotate = false;
+            }
+        }
 
     }
-    
+
     void FixedUpdate()
     {
         // Seulement effectuer les sauts si le script est activé
@@ -279,7 +279,7 @@ private Vector3 initialCameraPosition;
 
         foreach (Collider col in gridColliders)
         {
-            if (((1 << col.gameObject.layer) & obstacleLayer) == 0) 
+            if (((1 << col.gameObject.layer) & obstacleLayer) == 0)
             {
                 Vector3 cubePos = new Vector3(Mathf.Round(col.transform.position.x * 1000) / 1000, col.transform.position.y, Mathf.Round(col.transform.position.z * 1000) / 1000);
                 if (!gridPositionsToCubes.ContainsKey(cubePos))
@@ -331,7 +331,7 @@ private Vector3 initialCameraPosition;
             GameObject potentialHoveredCube = hit.collider.gameObject;
 
             // Vérifier si c'est un PoisonPit ou un ShrinkTile pour l'affichage "hors de portée" au survol
-            if (potentialHoveredCube.CompareTag("PoisonPit") || potentialHoveredCube.CompareTag("ShrinkTile")) 
+            if (potentialHoveredCube.CompareTag("PoisonPit") || potentialHoveredCube.CompareTag("ShrinkTile"))
             {
                 Renderer cubeRenderer = potentialHoveredCube.GetComponent<Renderer>();
                 if (cubeRenderer != null && outOfRangeCellMaterial != null)
@@ -340,7 +340,7 @@ private Vector3 initialCameraPosition;
                     {
                         originalCellMaterials.Add(potentialHoveredCube, cubeRenderer.sharedMaterial);
                     }
-                    cubeRenderer.material = outOfRangeCellMaterial; 
+                    cubeRenderer.material = outOfRangeCellMaterial;
                 }
                 return;
             }
@@ -424,95 +424,95 @@ private Vector3 initialCameraPosition;
         lastHoveredCube = null;
     }
 
-    
 
 
-void HandleInput()
-{
-    if (Input.GetMouseButtonDown(0))
+
+    void HandleInput()
     {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity, gridLayer))
+        if (Input.GetMouseButtonDown(0))
         {
-            GameObject targetCube = hit.collider.gameObject;
-
-            // Définir les tuiles qui ne doivent pas être des obstacles mais peuvent avoir un comportement spécial
-            bool isTargetPoisonPit = targetCube.CompareTag("PoisonPit");
-            bool isTargetShrinkTile = targetCube.CompareTag("ShrinkTile");
-            bool isTargetBoostedTile = targetCube.CompareTag("StickyTile"); // J'ai ajouté le Tag de la tuile verte
-            bool isTargetMutationWall = targetCube.CompareTag("MutationWall");
-
-            // Vérifier si le chemin est valide et dans les limites de la portée
-            List<GameObject> tempPath = GetShortestPath(currentGridCube, targetCube);
-
-            if (tempPath == null || tempPath.Count == 0)
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, gridLayer))
             {
-                Debug.Log("Cible invalide ou inaccessible !");
-                StartCoroutine(ShakeScreen());
-                ResetAllCellMaterials();
-                return;
-            }
+                GameObject targetCube = hit.collider.gameObject;
 
-            // La vraie vérification de la longueur du chemin pour TOUTES les tuiles
-            if (tempPath.Count > maxPathLength)
-            {
-                Debug.Log("Le chemin est trop long !");
-                StartCoroutine(ShakeScreen());
-                ResetAllCellMaterials();
-                return;
-            }
-            
-            // Vérifier si le joueur est trop grand pour passer un mur de mutation
-            if (isTargetMutationWall && !IsSmall)
-            {
-                Debug.Log("Je suis trop grand pour passer ici !");
-                StartCoroutine(ShakeScreen());
-                ResetAllCellMaterials();
-                return;
-            }
+                // Définir les tuiles qui ne doivent pas être des obstacles mais peuvent avoir un comportement spécial
+                bool isTargetPoisonPit = targetCube.CompareTag("PoisonPit");
+                bool isTargetShrinkTile = targetCube.CompareTag("ShrinkTile");
+                bool isTargetBoostedTile = targetCube.CompareTag("StickyTile"); // J'ai ajouté le Tag de la tuile verte
+                bool isTargetMutationWall = targetCube.CompareTag("MutationWall");
 
-            ResetAllCellMaterials();
-            UpdateSelectedCubeVisual(targetCube);
-            CalculatePathForMovement(targetCube);
+                // Vérifier si le chemin est valide et dans les limites de la portée
+                List<GameObject> tempPath = GetShortestPath(currentGridCube, targetCube);
+
+                if (tempPath == null || tempPath.Count == 0)
+                {
+                    Debug.Log("Cible invalide ou inaccessible !");
+                    StartCoroutine(ShakeScreen());
+                    ResetAllCellMaterials();
+                    return;
+                }
+
+                // La vraie vérification de la longueur du chemin pour TOUTES les tuiles
+                if (tempPath.Count > maxPathLength)
+                {
+                    Debug.Log("Le chemin est trop long !");
+                    StartCoroutine(ShakeScreen());
+                    ResetAllCellMaterials();
+                    return;
+                }
+
+                // Vérifier si le joueur est trop grand pour passer un mur de mutation
+                if (isTargetMutationWall && !IsSmall)
+                {
+                    Debug.Log("Je suis trop grand pour passer ici !");
+                    StartCoroutine(ShakeScreen());
+                    ResetAllCellMaterials();
+                    return;
+                }
+
+                ResetAllCellMaterials();
+                UpdateSelectedCubeVisual(targetCube);
+                CalculatePathForMovement(targetCube);
+            }
         }
     }
-}
 
-  void UpdateSelectedCubeVisual(GameObject newSelectedCube)
-{
-    if (lastSelectedCube != null && originalCellMaterials.ContainsKey(lastSelectedCube))
+    void UpdateSelectedCubeVisual(GameObject newSelectedCube)
     {
-        Renderer oldRenderer = lastSelectedCube.GetComponent<Renderer>();
-        if (oldRenderer != null) oldRenderer.material = originalCellMaterials[lastSelectedCube];
-    }
+        if (lastSelectedCube != null && originalCellMaterials.ContainsKey(lastSelectedCube))
+        {
+            Renderer oldRenderer = lastSelectedCube.GetComponent<Renderer>();
+            if (oldRenderer != null) oldRenderer.material = originalCellMaterials[lastSelectedCube];
+        }
 
-    if (newSelectedCube != null)
-    {
-        // Ne pas sélectionner visuellement les tuiles spéciales ou les murs de mutation
-        if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile") || newSelectedCube.CompareTag("StickyTile") || newSelectedCube.CompareTag("FallingPlatform")) 
+        if (newSelectedCube != null)
+        {
+            // Ne pas sélectionner visuellement les tuiles spéciales ou les murs de mutation
+            if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile") || newSelectedCube.CompareTag("StickyTile") || newSelectedCube.CompareTag("FallingPlatform"))
+            {
+                lastSelectedCube = null;
+                return;
+            }
+
+            Renderer newCubeRenderer = newSelectedCube.GetComponent<Renderer>();
+            if (newCubeRenderer != null && selectedCellMaterial != null)
+            {
+                if (!originalCellMaterials.ContainsKey(newSelectedCube))
+                {
+                    originalCellMaterials.Add(newSelectedCube, newCubeRenderer.sharedMaterial);
+                }
+
+                newCubeRenderer.material = selectedCellMaterial;
+                lastSelectedCube = newSelectedCube;
+            }
+        }
+        else
         {
             lastSelectedCube = null;
-            return;
-        }
-
-        Renderer newCubeRenderer = newSelectedCube.GetComponent<Renderer>();
-        if (newCubeRenderer != null && selectedCellMaterial != null)
-        {
-            if (!originalCellMaterials.ContainsKey(newSelectedCube))
-            {
-                originalCellMaterials.Add(newSelectedCube, newCubeRenderer.sharedMaterial);
-            }
-
-            newCubeRenderer.material = selectedCellMaterial;
-            lastSelectedCube = newSelectedCube;
         }
     }
-    else
-    {
-        lastSelectedCube = null;
-    }
-}
 
 
     void CalculatePathForMovement(GameObject targetCube)
@@ -545,28 +545,28 @@ void HandleInput()
     }
 
     // Coroutine pour faire vibrer l'écran
-private IEnumerator ShakeScreen()
-{
-    // Sauvegarder la position initiale de la caméra
-    initialCameraPosition = mainCamera.transform.localPosition;
-    float elapsed = 0.0f;
-
-    while (elapsed < shakeDuration)
+    private IEnumerator ShakeScreen()
     {
-        // Génère un vecteur de vibration aléatoire dans un cercle
-        float x = Random.Range(-1f, 1f) * shakeMagnitude;
-        float y = Random.Range(-1f, 1f) * shakeMagnitude;
+        // Sauvegarder la position initiale de la caméra
+        initialCameraPosition = mainCamera.transform.localPosition;
+        float elapsed = 0.0f;
 
-        // Applique la vibration à la position de la caméra
-        mainCamera.transform.localPosition = initialCameraPosition + new Vector3(x, y, 0);
+        while (elapsed < shakeDuration)
+        {
+            // Génère un vecteur de vibration aléatoire dans un cercle
+            float x = Random.Range(-1f, 1f) * shakeMagnitude;
+            float y = Random.Range(-1f, 1f) * shakeMagnitude;
 
-        elapsed += Time.deltaTime;
-        yield return null;
+            // Applique la vibration à la position de la caméra
+            mainCamera.transform.localPosition = initialCameraPosition + new Vector3(x, y, 0);
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Réinitialise la position de la caméra à sa position initiale après la vibration
+        mainCamera.transform.localPosition = initialCameraPosition;
     }
-
-    // Réinitialise la position de la caméra à sa position initiale après la vibration
-    mainCamera.transform.localPosition = initialCameraPosition;
-}
 
     List<GameObject> GetShortestPath(GameObject start, GameObject target)
     {
@@ -591,12 +591,12 @@ private IEnumerator ShakeScreen()
 
             if (current == target)
             {
-                foundPath = true; 
+                foundPath = true;
                 break;
             }
 
             // Si la distance actuelle est déjà maxPathLength et que la cible n'est PAS une tuile spéciale ou un mur de mutation
-            if (distance[current] >= maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall"))) 
+            if (distance[current] >= maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall")))
             {
                 continue;
             }
@@ -612,17 +612,17 @@ private IEnumerator ShakeScreen()
                     distance[neighbor] = distance[current] + 1;
 
                     // Condition pour les tuiles non-spéciales et non-murs de mutation : si le chemin est trop long, on ne le prend pas
-                    if (neighbor == target && distance[neighbor] > maxPathLength && !(neighbor.CompareTag("PoisonPit") || neighbor.CompareTag("ShrinkTile") || neighbor.CompareTag("MutationWall"))) 
+                    if (neighbor == target && distance[neighbor] > maxPathLength && !(neighbor.CompareTag("PoisonPit") || neighbor.CompareTag("ShrinkTile") || neighbor.CompareTag("MutationWall")))
                     {
-                        foundPath = false; 
-                        queue.Clear(); 
-                        break; 
+                        foundPath = false;
+                        queue.Clear();
+                        break;
                     }
                 }
             }
             if (queue.Count == 0 && current != target)
             {
-                foundPath = false; 
+                foundPath = false;
                 break;
             }
         }
@@ -645,7 +645,7 @@ private IEnumerator ShakeScreen()
             }
 
             // Dernière vérification de la longueur du chemin pour les non-tuiles spéciales et non-murs de mutation
-            if (pathObjects.Count > maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall"))) 
+            if (pathObjects.Count > maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall")))
             {
                 return null;
             }
@@ -658,7 +658,7 @@ private IEnumerator ShakeScreen()
     List<GameObject> CalculatePathForHover(GameObject startCube, GameObject targetCube)
     {
         // Une tuile spéciale ou un mur de mutation ne devrait pas être affichée comme une cible valide pour le survol
-        if (targetCube.CompareTag("PoisonPit") || targetCube.CompareTag("ShrinkTile") || targetCube.CompareTag("MutationWall")) return null; 
+        if (targetCube.CompareTag("PoisonPit") || targetCube.CompareTag("ShrinkTile") || targetCube.CompareTag("MutationWall")) return null;
 
         if (((1 << targetCube.layer) & obstacleLayer) != 0) return null;
 
@@ -667,178 +667,178 @@ private IEnumerator ShakeScreen()
     }
 
 
-List<GameObject> GetNeighbors(GameObject cube)
-{
-    List<GameObject> neighbors = new List<GameObject>();
-    Vector3 cubePos = cube.transform.position;
-
-    foreach (var entry in gridPositionsToCubes)
+    List<GameObject> GetNeighbors(GameObject cube)
     {
-        GameObject potentialNeighbor = entry.Value;
-        if (potentialNeighbor == cube) continue;
+        List<GameObject> neighbors = new List<GameObject>();
+        Vector3 cubePos = cube.transform.position;
 
-        float horizontalDistance = Vector2.Distance(
-            new Vector2(cubePos.x, cubePos.z),
-            new Vector2(potentialNeighbor.transform.position.x, potentialNeighbor.transform.position.z)
-        );
-        float verticalDifference = Mathf.Abs(cubePos.y - potentialNeighbor.transform.position.y);
-
-        if (horizontalDistance > maxJumpDistance || verticalDifference > maxVerticalJumpDifference)
+        foreach (var entry in gridPositionsToCubes)
         {
-            continue;
-        }
+            GameObject potentialNeighbor = entry.Value;
+            if (potentialNeighbor == cube) continue;
 
-        // Vérification d'obstacle sur la trajectoire du saut
-        RaycastHit hit;
-        if (Physics.Linecast(cubePos, potentialNeighbor.transform.position, out hit, obstacleLayer))
-        {
-            if (hit.collider.gameObject != potentialNeighbor)
+            float horizontalDistance = Vector2.Distance(
+                new Vector2(cubePos.x, cubePos.z),
+                new Vector2(potentialNeighbor.transform.position.x, potentialNeighbor.transform.position.z)
+            );
+            float verticalDifference = Mathf.Abs(cubePos.y - potentialNeighbor.transform.position.y);
+
+            if (horizontalDistance > maxJumpDistance || verticalDifference > maxVerticalJumpDifference)
             {
-                // Vérifier si le joueur est petit et peut passer sous l'obstacle
-                if (IsSmall)
+                continue;
+            }
+
+            // Vérification d'obstacle sur la trajectoire du saut
+            RaycastHit hit;
+            if (Physics.Linecast(cubePos, potentialNeighbor.transform.position, out hit, obstacleLayer))
+            {
+                if (hit.collider.gameObject != potentialNeighbor)
                 {
-                    continue; // Le joueur est petit et peut passer sous l'obstacle
-                }
-                else
-                {
-                    continue; // Trajectoire bloquée, ce n'est pas un voisin valide
+                    // Vérifier si le joueur est petit et peut passer sous l'obstacle
+                    if (IsSmall)
+                    {
+                        continue; // Le joueur est petit et peut passer sous l'obstacle
+                    }
+                    else
+                    {
+                        continue; // Trajectoire bloquée, ce n'est pas un voisin valide
+                    }
                 }
             }
-        }
 
-        bool isMutationWall = potentialNeighbor.CompareTag("MutationWall");
-        bool isObstacleLayer = ((1 << potentialNeighbor.layer) & obstacleLayer) != 0;
+            bool isMutationWall = potentialNeighbor.CompareTag("MutationWall");
+            bool isObstacleLayer = ((1 << potentialNeighbor.layer) & obstacleLayer) != 0;
 
-        if (isObstacleLayer && !isMutationWall)
-        {
-            continue;
-        }
-
-        if (isMutationWall)
-        {
-            if (!IsSmall)
+            if (isObstacleLayer && !isMutationWall)
             {
-                continue; // Le joueur est trop grand pour considérer le mur comme une destination
+                continue;
             }
+
+            if (isMutationWall)
+            {
+                if (!IsSmall)
+                {
+                    continue; // Le joueur est trop grand pour considérer le mur comme une destination
+                }
+            }
+
+            neighbors.Add(potentialNeighbor);
         }
 
-        neighbors.Add(potentialNeighbor);
+        return neighbors;
     }
 
-    return neighbors;
-}
 
 
 
-
-void StartNextJump()
-{
-    isJumping = true;
-    jumpTimer = 0f;
-    startJumpPosition = transform.position;
-    targetJumpPosition = path[currentPathIndex];
-
-    // Préparer la rotation vers la direction du saut
-    Vector3 direction = (targetJumpPosition - startJumpPosition).normalized;
-    direction.y = 0f;
-
-    if (direction != Vector3.zero)
+    void StartNextJump()
     {
-        desiredRotation = Quaternion.LookRotation(direction);
-        shouldRotate = true;
-    }
-}
+        isJumping = true;
+        jumpTimer = 0f;
+        startJumpPosition = transform.position;
+        targetJumpPosition = path[currentPathIndex];
 
-
-
-// ✅ MODIFIER la méthode PerformJump existante
-void PerformJump()
-{
-    // ✅ MODIFICATION : Appliquer les multiplicateurs collants
-    float currentJumpDuration = jumpDuration * (IsSticky ? stickyJumpDurationMultiplier : 1.0f);
-    float currentHorizontalSpeed = horizontalSpeed * (IsSticky ? stickyJumpSpeedMultiplier : 1.0f);
-    
-    jumpTimer += Time.fixedDeltaTime;
-    float progress = jumpTimer / currentJumpDuration; // ✅ Utilise la durée modifiée
-
-    if (progress >= 1f)
-    {
-        transform.position = targetJumpPosition + Vector3.up * verticalOffsetOnGround;
-        rb.linearVelocity = Vector3.zero;
-        isJumping = false;
-
-        // ✅ NOUVEAU : Sauvegarder la tuile actuelle comme tuile précédente AVANT de changer
-        previousGridCube = currentGridCube;
-
-        currentGridCube = FindNearestGridCube(transform.position);
-        if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
-
-        currentPathIndex++;
-
-        // ✅ MODIFICATION : Ne mettre à jour lastSafePosition que si ce n'est PAS une tuile réactive
-        if (currentGridCube != null &&
-            !currentGridCube.CompareTag("PoisonPit") &&
-            !currentGridCube.CompareTag("StickyTile") &&
-            !currentGridCube.CompareTag("ShrinkTile"))
-        {
-            lastSafePosition = transform.position;
-            Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
-        }
-
-        if (currentPathIndex >= path.Count)
-        {
-            pathCalculated = false;
-            path.Clear();
-            lr.positionCount = 0;
-            rb.linearVelocity = Vector3.zero;
-            transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
-            ResetAllCellMaterials();
-            Debug.Log("Path completed.");
-        }
-    }
-    else
-    {
-        // ✅ MODIFICATION : Utiliser la vitesse horizontale modifiée pour l'interpolation
-        Vector3 currentPosHorizontal = Vector3.Lerp(
-            new Vector3(startJumpPosition.x, 0, startJumpPosition.z),
-            new Vector3(targetJumpPosition.x, 0, targetJumpPosition.z),
-            progress
-        );
-
-        float yInterpolated = Mathf.Lerp(startJumpPosition.y, targetJumpPosition.y + verticalOffsetOnGround, progress);
-        float yParabolaOffset = jumpHeight * (4f * progress * (1f - progress));
-
-        rb.MovePosition(new Vector3(currentPosHorizontal.x, yInterpolated + yParabolaOffset, currentPosHorizontal.z));
-
-        Vector3 direction = (targetJumpPosition - transform.position);
+        // Préparer la rotation vers la direction du saut
+        Vector3 direction = (targetJumpPosition - startJumpPosition).normalized;
         direction.y = 0f;
+
         if (direction != Vector3.zero)
         {
-            // ✅ MODIFICATION : Appliquer aussi le ralentissement à la rotation
-            float currentRotationSpeed = rotationSpeed * (IsSticky ? stickyJumpSpeedMultiplier : 1.0f);
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, currentRotationSpeed * Time.fixedDeltaTime);
+            desiredRotation = Quaternion.LookRotation(direction);
+            shouldRotate = true;
         }
     }
-}
 
-// ✅ NOUVELLE MÉTHODE : Pour revenir à la tuile précédente
-public void ReturnToPreviousTile()
-{
-    if (previousGridCube != null)
+
+
+    // ✅ MODIFIER la méthode PerformJump existante
+    void PerformJump()
     {
-        Vector3 targetPosition = previousGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
-        transform.position = targetPosition;
-        currentGridCube = previousGridCube;
-        Debug.Log($"Joueur retourné à la tuile précédente : {previousGridCube.name}");
+        // ✅ MODIFICATION : Appliquer les multiplicateurs collants
+        float currentJumpDuration = jumpDuration * (IsSticky ? stickyJumpDurationMultiplier : 1.0f);
+        float currentHorizontalSpeed = horizontalSpeed * (IsSticky ? stickyJumpSpeedMultiplier : 1.0f);
+
+        jumpTimer += Time.fixedDeltaTime;
+        float progress = jumpTimer / currentJumpDuration; // ✅ Utilise la durée modifiée
+
+        if (progress >= 1f)
+        {
+            transform.position = targetJumpPosition + Vector3.up * verticalOffsetOnGround;
+            rb.linearVelocity = Vector3.zero;
+            isJumping = false;
+
+            // ✅ NOUVEAU : Sauvegarder la tuile actuelle comme tuile précédente AVANT de changer
+            previousGridCube = currentGridCube;
+
+            currentGridCube = FindNearestGridCube(transform.position);
+            if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
+
+            currentPathIndex++;
+
+            // ✅ MODIFICATION : Ne mettre à jour lastSafePosition que si ce n'est PAS une tuile réactive
+            if (currentGridCube != null &&
+                !currentGridCube.CompareTag("PoisonPit") &&
+                !currentGridCube.CompareTag("StickyTile") &&
+                !currentGridCube.CompareTag("ShrinkTile"))
+            {
+                lastSafePosition = transform.position;
+                Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
+            }
+
+            if (currentPathIndex >= path.Count)
+            {
+                pathCalculated = false;
+                path.Clear();
+                lr.positionCount = 0;
+                rb.linearVelocity = Vector3.zero;
+                transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
+                ResetAllCellMaterials();
+                Debug.Log("Path completed.");
+            }
+        }
+        else
+        {
+            // ✅ MODIFICATION : Utiliser la vitesse horizontale modifiée pour l'interpolation
+            Vector3 currentPosHorizontal = Vector3.Lerp(
+                new Vector3(startJumpPosition.x, 0, startJumpPosition.z),
+                new Vector3(targetJumpPosition.x, 0, targetJumpPosition.z),
+                progress
+            );
+
+            float yInterpolated = Mathf.Lerp(startJumpPosition.y, targetJumpPosition.y + verticalOffsetOnGround, progress);
+            float yParabolaOffset = jumpHeight * (4f * progress * (1f - progress));
+
+            rb.MovePosition(new Vector3(currentPosHorizontal.x, yInterpolated + yParabolaOffset, currentPosHorizontal.z));
+
+            Vector3 direction = (targetJumpPosition - transform.position);
+            direction.y = 0f;
+            if (direction != Vector3.zero)
+            {
+                // ✅ MODIFICATION : Appliquer aussi le ralentissement à la rotation
+                float currentRotationSpeed = rotationSpeed * (IsSticky ? stickyJumpSpeedMultiplier : 1.0f);
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, currentRotationSpeed * Time.fixedDeltaTime);
+            }
+        }
     }
-    else
+
+    // ✅ NOUVELLE MÉTHODE : Pour revenir à la tuile précédente
+    public void ReturnToPreviousTile()
     {
-        // Fallback sur lastSafePosition si pas de tuile précédente
-        transform.position = lastSafePosition;
-        Debug.Log("Pas de tuile précédente trouvée, retour à lastSafePosition");
+        if (previousGridCube != null)
+        {
+            Vector3 targetPosition = previousGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
+            transform.position = targetPosition;
+            currentGridCube = previousGridCube;
+            Debug.Log($"Joueur retourné à la tuile précédente : {previousGridCube.name}");
+        }
+        else
+        {
+            // Fallback sur lastSafePosition si pas de tuile précédente
+            transform.position = lastSafePosition;
+            Debug.Log("Pas de tuile précédente trouvée, retour à lastSafePosition");
+        }
     }
-}
 
 
     // --- NOUVELLES/MODIFIÉES MÉTHODES POUR LA TAILLE DE LA BOULE ---
@@ -901,39 +901,39 @@ public void ReturnToPreviousTile()
 
     // Méthode publique pour changer la taille, maintenant avec une durée paramétrable.
     // Une 'holdDuration' de -1f signifie "indéfiniment".
-// Ajoute cette méthode dans PlayerMovement.cs ou modifie ChangePlayerScale
-public void ChangePlayerScale(float targetUniformScale, float holdDuration)
-{
-    // Arrête toute coroutine de changement de taille en cours
-    if (scaleChangeCoroutine != null)
+    // Ajoute cette méthode dans PlayerMovement.cs ou modifie ChangePlayerScale
+    public void ChangePlayerScale(float targetUniformScale, float holdDuration)
     {
-        StopCoroutine(scaleChangeCoroutine);
-    }
-    
-    // ✅ AJOUT : Applique immédiatement la mutation du collider
-    // Si on grossit (targetUniformScale > mutationNormalScale), on n'est plus petit
-    // Si on rétrécit (targetUniformScale < mutationNormalScale), on devient petit
-    if (targetUniformScale <= mutationSmallScale)
-    {
-        IsSmall = true;
-        IsBig = false;
-    }
-    else if (targetUniformScale >= mutationNormalScale * 1.5f) // Seuil pour "gros"
-    {
-        IsSmall = false;
-        IsBig = true;
-    }
-    else
-    {
-        IsSmall = false;
-        IsBig = false;
-    }
-    
-    // Applique immédiatement la taille du collider
-    ApplyPlayerMutationSize(IsSmall);
-    
-    // Démarre la coroutine pour l'effet visuel
-    scaleChangeCoroutine = StartCoroutine(ScalePlayerOverTime(targetUniformScale, holdDuration));
+        // Arrête toute coroutine de changement de taille en cours
+        if (scaleChangeCoroutine != null)
+        {
+            StopCoroutine(scaleChangeCoroutine);
+        }
+
+        // ✅ AJOUT : Applique immédiatement la mutation du collider
+        // Si on grossit (targetUniformScale > mutationNormalScale), on n'est plus petit
+        // Si on rétrécit (targetUniformScale < mutationNormalScale), on devient petit
+        if (targetUniformScale <= mutationSmallScale)
+        {
+            IsSmall = true;
+            IsBig = false;
+        }
+        else if (targetUniformScale >= mutationNormalScale * 1.5f) // Seuil pour "gros"
+        {
+            IsSmall = false;
+            IsBig = true;
+        }
+        else
+        {
+            IsSmall = false;
+            IsBig = false;
+        }
+
+        // Applique immédiatement la taille du collider
+        ApplyPlayerMutationSize(IsSmall);
+
+        // Démarre la coroutine pour l'effet visuel
+        scaleChangeCoroutine = StartCoroutine(ScalePlayerOverTime(targetUniformScale, holdDuration));
     }
 
     // Coroutine modifiée pour inclure une durée de maintien paramétrable et la gestion de "indéfini"
@@ -971,52 +971,52 @@ public void ChangePlayerScale(float targetUniformScale, float holdDuration)
 
     // --- FIN NOUVELLES MÉTHODES POUR LA TAILLE DE LA BOULE ---
 
- // ✅ MODIFIER la méthode SetStickyState existante pour inclure un feedback visuel
-public void SetStickyState(bool state, float duration, float newStickyFallDelayMultiplier)
-{
-    // On évite de relancer l'effet si il est déjà actif
-    if (IsSticky == state) return;
-
-    IsSticky = state;
-    stickyFallDelayMultiplier = newStickyFallDelayMultiplier;
-
-    // ✅ AJOUT : Feedback de debug amélioré
-    if (IsSticky)
+    // ✅ MODIFIER la méthode SetStickyState existante pour inclure un feedback visuel
+    public void SetStickyState(bool state, float duration, float newStickyFallDelayMultiplier)
     {
-        Debug.Log($"🟢 EFFET COLLANT ACTIVÉ ! Vitesse: {stickyJumpSpeedMultiplier}x, Durée: {stickyJumpDurationMultiplier}x");
-        
-        if (stickyEffectCoroutine != null)
+        // On évite de relancer l'effet si il est déjà actif
+        if (IsSticky == state) return;
+
+        IsSticky = state;
+        stickyFallDelayMultiplier = newStickyFallDelayMultiplier;
+
+        // ✅ AJOUT : Feedback de debug amélioré
+        if (IsSticky)
         {
-            StopCoroutine(stickyEffectCoroutine);
+            Debug.Log($"🟢 EFFET COLLANT ACTIVÉ ! Vitesse: {stickyJumpSpeedMultiplier}x, Durée: {stickyJumpDurationMultiplier}x");
+
+            if (stickyEffectCoroutine != null)
+            {
+                StopCoroutine(stickyEffectCoroutine);
+            }
+
+            if (duration > 0)
+            {
+                stickyEffectCoroutine = StartCoroutine(StickyEffectTimer(duration));
+            }
         }
-        
-        if (duration > 0)
+        else
         {
-            stickyEffectCoroutine = StartCoroutine(StickyEffectTimer(duration));
+            Debug.Log("🔴 EFFET COLLANT DÉSACTIVÉ");
+            // Réinitialise le multiplicateur
+            stickyFallDelayMultiplier = 1.0f;
+            if (stickyEffectCoroutine != null)
+            {
+                StopCoroutine(stickyEffectCoroutine);
+            }
+            stickyEffectCoroutine = null;
         }
     }
-    else
+
+    // ✅ NOUVELLE COROUTINE : Pour gérer la durée de l'effet collant
+    private IEnumerator StickyEffectTimer(float duration)
     {
-        Debug.Log("🔴 EFFET COLLANT DÉSACTIVÉ");
-        // Réinitialise le multiplicateur
-        stickyFallDelayMultiplier = 1.0f;
-        if (stickyEffectCoroutine != null)
-        {
-            StopCoroutine(stickyEffectCoroutine);
-        }
+        yield return new WaitForSeconds(duration);
+
+        // Désactive l'effet collant après la durée spécifiée
+        SetStickyState(false, 0, 1.0f);
         stickyEffectCoroutine = null;
     }
-}
-
-// ✅ NOUVELLE COROUTINE : Pour gérer la durée de l'effet collant
-private IEnumerator StickyEffectTimer(float duration)
-{
-    yield return new WaitForSeconds(duration);
-    
-    // Désactive l'effet collant après la durée spécifiée
-    SetStickyState(false, 0, 1.0f);
-    stickyEffectCoroutine = null;
-}
 
     void UpdatePathVisualization()
     {
@@ -1059,9 +1059,9 @@ private IEnumerator StickyEffectTimer(float duration)
         }
 
         float adjustedFallDelay = fallDelay * (IsSticky ? stickyFallDelayMultiplier : 1.0f);
-        
+
         Debug.Log($"Plaque qui tombe - Délai: {adjustedFallDelay}s (normal: {fallDelay}s, collant: {IsSticky})");
-        
+
         yield return new WaitForSeconds(adjustedFallDelay);
 
         Vector3 startPos = platform.transform.position;
@@ -1085,7 +1085,7 @@ private IEnumerator StickyEffectTimer(float duration)
         platform.SetActive(false);
     }
 
-    
+
 
     void OnDrawGizmos()
     {
@@ -1111,10 +1111,56 @@ private IEnumerator StickyEffectTimer(float duration)
             Gizmos.color = Color.green; // Couleur pour le chemin
             for (int i = 0; i < path.Count - 1; i++)
             {
-                Gizmos.DrawLine(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), path[i+1] + Vector3.up * (0.1f + verticalOffsetOnGround));
+                Gizmos.DrawLine(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), path[i + 1] + Vector3.up * (0.1f + verticalOffsetOnGround));
                 Gizmos.DrawSphere(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), 0.05f);
             }
             Gizmos.DrawSphere(path[path.Count - 1] + Vector3.up * (0.1f + verticalOffsetOnGround), 0.05f); // Dernier point
         }
     }
+    
+    // Méthode publique pour la téléportation depuis d'autres scripts
+public void TeleportToPosition(Vector3 targetPosition)
+{
+    // Arrête tout mouvement en cours
+    isJumping = false;
+    jumpTimer = 0f;
+    pathCalculated = false;
+    path.Clear();
+    currentPathIndex = 0;
+    
+    // Vide la visualisation du chemin
+    if (lr != null)
+    {
+        lr.positionCount = 0;
+    }
+    
+    // Arrête la vélocité du Rigidbody
+    if (rb != null)
+    {
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+    }
+    
+    // Positionne le joueur
+    Vector3 teleportPosition = targetPosition;
+    teleportPosition.y += verticalOffsetOnGround;
+    transform.position = teleportPosition;
+    
+    // Met à jour la position sur la grille
+    GameObject newGridCube = FindNearestGridCube(transform.position);
+    if (newGridCube != null)
+    {
+        previousGridCube = currentGridCube;
+        currentGridCube = newGridCube;
+        lastSafePosition = teleportPosition;
+        Debug.Log($"Téléportation réussie vers {newGridCube.name}");
+    }
+    else
+    {
+        Debug.LogError("Aucun cube de grille trouvé près de la position de téléportation !");
+    }
+    
+    // Remet à zéro les matériaux des cellules
+    ResetAllCellMaterials();
+}
 }
