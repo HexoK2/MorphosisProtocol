@@ -535,18 +535,24 @@ public class PlayerMovement : MonoBehaviour
             path = calculatedGameObjectsPath.Select(cube => cube.transform.position).ToList();
             pathCalculated = true;
         }
-        else
-        {
-            Debug.LogWarning("Chemin invalide pour le mouvement (trop long ou obstacle non détecté plus tôt) !");
-            pathCalculated = false;
-            ResetAllCellMaterials();
-            StartCoroutine(ShakeScreen());
-        }
+else
+{
+    Debug.LogWarning("Chemin invalide pour le mouvement !");
+    
+    pathCalculated = false;
+    ResetAllCellMaterials();
+    StartCoroutine(ShakeScreen());
+}
     }
 
     // Coroutine pour faire vibrer l'écran
     private IEnumerator ShakeScreen()
     {
+        if (mainCamera == null)
+        {
+            Debug.LogWarning("Main Camera n'est pas assignée pour l'effet de vibration.");
+            yield break;
+        }
         // Sauvegarder la position initiale de la caméra
         initialCameraPosition = mainCamera.transform.localPosition;
         float elapsed = 0.0f;
