@@ -1122,10 +1122,51 @@ else
             }
             Gizmos.DrawSphere(path[path.Count - 1] + Vector3.up * (0.1f + verticalOffsetOnGround), 0.05f); // Dernier point
         }
+
+}
+    // 🔑 Copie et colle ces deux blocs DANS ta classe PlayerMovement :
+
+    /// <summary>
+    /// Ajoute une tuile (GameObject) à la grille de navigation.
+    /// </summary>
+    public void AddGridCube(GameObject cube)
+    {
+        // Normalisation de la position pour s'assurer que le Vector3 est exact
+        Vector3 cubePos = new Vector3(
+            Mathf.Round(cube.transform.position.x * 1000) / 1000,
+            cube.transform.position.y,
+            Mathf.Round(cube.transform.position.z * 1000) / 1000);
+
+        // Vérifie si la grille est initialisée et si la position n'existe pas déjà
+        // NOTE : Assure-toi que 'gridPositionsToCubes' est bien le nom de ton dictionnaire de grille.
+        if (gridPositionsToCubes != null && !gridPositionsToCubes.ContainsKey(cubePos))
+        {
+            gridPositionsToCubes.Add(cubePos, cube);
+            // Debug.Log($"[Grille] Tuile {cube.name} ré-activée et ajoutée à la grille.");
+        }
     }
-    
+
+    /// <summary>
+    /// Retire une tuile (GameObject) de la grille de navigation.
+    /// </summary>
+    public void RemoveGridCube(GameObject cube)
+    {
+        // Normalisation de la position
+        Vector3 cubePos = new Vector3(
+            Mathf.Round(cube.transform.position.x * 1000) / 1000,
+            cube.transform.position.y,
+            Mathf.Round(cube.transform.position.z * 1000) / 1000);
+
+        if (gridPositionsToCubes != null && gridPositionsToCubes.ContainsKey(cubePos))
+        {
+            gridPositionsToCubes.Remove(cubePos);
+            // Debug.Log($"[Grille] Tuile {cube.name} retirée de la grille de navigation.");
+        }
+    }
+
+
     // Méthode publique pour la téléportation depuis d'autres scripts
-public void TeleportToPosition(Vector3 targetPosition)
+    public void TeleportToPosition(Vector3 targetPosition)
 {
     // Arrête tout mouvement en cours
     isJumping = false;

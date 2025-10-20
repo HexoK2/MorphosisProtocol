@@ -1,20 +1,28 @@
 using UnityEngine;
 
+
 public class Slab : MonoBehaviour
 {
     [Header("Références")]
     private PlayerMovement playerMovement;
     private Animator plateAnimator;
-    
+
     // Mémorise si le bouton est actuellement enfoncé
-    private bool isPressed = false; 
+    private bool isPressed = false;
+
+    // 🔑 PROPRIÉTÉ PUBLIQUE : Permet aux autres scripts de lire l'état
+    public bool IsActive
+    {
+        get { return isPressed; }
+    }
 
     void Start()
     {
         // Récupère les composants nécessaires
         plateAnimator = GetComponent<Animator>();
+        // NOTE: Si le script de mouvement du joueur est le GridManager, il faut adapter
         playerMovement = FindObjectOfType<PlayerMovement>();
-        
+
         // Vérifications de sécurité
         if (plateAnimator == null)
         {
@@ -39,14 +47,11 @@ public class Slab : MonoBehaviour
                     // Animation : le bouton s'enfonce
                     plateAnimator.SetBool("IsActivated", true);
                 }
-                
+
                 // Mémorise que le bouton est maintenant enfoncé
                 isPressed = true;
-                
+
                 Debug.Log("Bouton de pression activé par le joueur Sticky.");
-                
-                // Ici tu peux ajouter des actions comme ouvrir une porte, etc.
-                // OnButtonPressed();
             }
             else if (playerMovement != null && !playerMovement.IsSticky)
             {
@@ -68,29 +73,12 @@ public class Slab : MonoBehaviour
                     // Animation : le bouton remonte
                     plateAnimator.SetBool("IsActivated", false);
                 }
-                
+
                 // Mémorise que le bouton n'est plus enfoncé
                 isPressed = false;
-                
+
                 Debug.Log("Le joueur est parti, le bouton remonte à sa position initiale.");
-                
-                // Ici tu peux ajouter des actions comme fermer une porte, etc.
-                // OnButtonReleased();
             }
         }
-    }
-
-    // Méthode optionnelle : actions quand le bouton est enfoncé
-    private void OnButtonPressed()
-    {
-        // Exemple : ouvrir une porte, activer un mécanisme, etc.
-        Debug.Log("Action déclenchée : porte ouverte, piège désactivé, etc.");
-    }
-
-    // Méthode optionnelle : actions quand le bouton est relâché
-    private void OnButtonReleased()
-    {
-        // Exemple : fermer une porte, réactiver un piège, etc.
-        Debug.Log("Action arrêtée : porte fermée, piège réactivé, etc.");
     }
 }
