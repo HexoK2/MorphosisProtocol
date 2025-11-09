@@ -12,7 +12,7 @@ public class SequenceManager : MonoBehaviour
 
     // Liste pour stocker les pressions du joueur
     private List<string> playerSequence = new List<string>();
-    private bool isSolved = false;
+    [SerializeField] private bool isSolved = false;
 
     void Start()
     {
@@ -23,9 +23,19 @@ public class SequenceManager : MonoBehaviour
         else
         {
             // Assure-toi que l'objet est fermé au départ
-            targetDoorOrObject.SetActive(false);
+            targetDoorOrObject.SetActive(true);
         }
     }
+
+    void Update()
+{
+    // Pour tester : appuie sur T pour simuler la résolution
+    if (Input.GetKeyDown(KeyCode.T))
+    {
+        Debug.Log("Test de résolution forcée !");
+        OnSequenceSolved();
+    }
+}
 
     /// <summary>
     /// Appelé par chaque dalle quand le joueur l'enfonce.
@@ -40,6 +50,7 @@ public class SequenceManager : MonoBehaviour
 
         // 2. Vérifie si l'étape actuelle est correcte
         int currentStep = playerSequence.Count - 1;
+            Debug.Log($"Vérification de l'étape {currentStep}: attendu '{correctSequence[currentStep]}', reçu '{slabName}'");
 
         if (slabName != correctSequence[currentStep])
         {
@@ -65,7 +76,7 @@ public class SequenceManager : MonoBehaviour
     private void OnSequenceSolved()
     {
         isSolved = true;
-        targetDoorOrObject.SetActive(true); // Ouvre la porte !
+        targetDoorOrObject.SetActive(false); // Ouvre la porte !
 
         Debug.Log("🎉 ÉNIGME RÉSOLUE ! La porte est ouverte.");
 

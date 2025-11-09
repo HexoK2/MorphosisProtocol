@@ -16,6 +16,9 @@ TagManager:
   - BigMutationWall
   - ObjectCamera
   - StickyTile
+  - SlipperyTile
+  - PlacementPlatform
+  - Poison
   layers:
   - Default
   - TransparentFX

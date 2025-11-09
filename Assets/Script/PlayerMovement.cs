@@ -52,6 +52,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("Mutation du joueur")]
     [Tooltip("Indique si le joueur est actuellement dans sa forme 'petite'.")]
     public bool _isSmall = false;
+[Header("Mutation Glissante")]
+[Tooltip("Indique si le joueur a la mutation glissante.")]
+public bool IsSlippery = false;
 
     public bool IsSmall
     {
@@ -141,7 +144,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 startJumpPosition;
     private Vector3 targetJumpPosition;
     private float jumpTimer = 0f;
-    private bool isJumping = false;
+    public bool isJumping = false;
     public bool pathCalculated = false;
 
     public GameObject currentGridCube;
@@ -331,7 +334,7 @@ public class PlayerMovement : MonoBehaviour
             GameObject potentialHoveredCube = hit.collider.gameObject;
 
             // Vérifier si c'est un PoisonPit ou un ShrinkTile pour l'affichage "hors de portée" au survol
-            if (potentialHoveredCube.CompareTag("PoisonPit") || potentialHoveredCube.CompareTag("ShrinkTile"))
+            if (potentialHoveredCube.CompareTag("PoisonPit") || potentialHoveredCube.CompareTag("ShrinkTile") || potentialHoveredCube.CompareTag("SlipperyTile"))
             {
                 Renderer cubeRenderer = potentialHoveredCube.GetComponent<Renderer>();
                 if (cubeRenderer != null && outOfRangeCellMaterial != null)
@@ -441,7 +444,9 @@ public class PlayerMovement : MonoBehaviour
                 bool isTargetPoisonPit = targetCube.CompareTag("PoisonPit");
                 bool isTargetShrinkTile = targetCube.CompareTag("ShrinkTile");
                 bool isTargetBoostedTile = targetCube.CompareTag("StickyTile"); // J'ai ajouté le Tag de la tuile verte
+                bool isTargetSlipperyTile = targetCube.CompareTag("SlipperyTile");
                 bool isTargetMutationWall = targetCube.CompareTag("MutationWall");
+
 
                 // Vérifier si le chemin est valide et dans les limites de la portée
                 List<GameObject> tempPath = GetShortestPath(currentGridCube, targetCube);
@@ -490,7 +495,7 @@ public class PlayerMovement : MonoBehaviour
         if (newSelectedCube != null)
         {
             // Ne pas sélectionner visuellement les tuiles spéciales ou les murs de mutation
-            if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile") || newSelectedCube.CompareTag("StickyTile") || newSelectedCube.CompareTag("FallingPlatform"))
+            if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile") || newSelectedCube.CompareTag("StickyTile") || newSelectedCube.CompareTag("FallingPlatform") || newSelectedCube.CompareTag("SlipperyTile"))
             {
                 lastSelectedCube = null;
                 return;
@@ -602,7 +607,7 @@ else
             }
 
             // Si la distance actuelle est déjà maxPathLength et que la cible n'est PAS une tuile spéciale ou un mur de mutation
-            if (distance[current] >= maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall")))
+            if (distance[current] >= maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall") || target.CompareTag("SlipperyTile")))
             {
                 continue;
             }
@@ -618,7 +623,7 @@ else
                     distance[neighbor] = distance[current] + 1;
 
                     // Condition pour les tuiles non-spéciales et non-murs de mutation : si le chemin est trop long, on ne le prend pas
-                    if (neighbor == target && distance[neighbor] > maxPathLength && !(neighbor.CompareTag("PoisonPit") || neighbor.CompareTag("ShrinkTile") || neighbor.CompareTag("MutationWall")))
+                    if (neighbor == target && distance[neighbor] > maxPathLength && !(neighbor.CompareTag("PoisonPit") || neighbor.CompareTag("ShrinkTile") || neighbor.CompareTag("MutationWall") || neighbor.CompareTag("SlipperyTile")))
                     {
                         foundPath = false;
                         queue.Clear();
@@ -651,7 +656,7 @@ else
             }
 
             // Dernière vérification de la longueur du chemin pour les non-tuiles spéciales et non-murs de mutation
-            if (pathObjects.Count > maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall")))
+            if (pathObjects.Count > maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall") || target.CompareTag("SlipperyTile")))
             {
                 return null;
             }
@@ -664,7 +669,7 @@ else
     List<GameObject> CalculatePathForHover(GameObject startCube, GameObject targetCube)
     {
         // Une tuile spéciale ou un mur de mutation ne devrait pas être affichée comme une cible valide pour le survol
-        if (targetCube.CompareTag("PoisonPit") || targetCube.CompareTag("ShrinkTile") || targetCube.CompareTag("MutationWall")) return null;
+        if (targetCube.CompareTag("PoisonPit") || targetCube.CompareTag("ShrinkTile") || targetCube.CompareTag("MutationWall") || targetCube.CompareTag("SlipperyTile")) return null;
 
         if (((1 << targetCube.layer) & obstacleLayer) != 0) return null;
 
@@ -785,7 +790,8 @@ else
             if (currentGridCube != null &&
                 !currentGridCube.CompareTag("PoisonPit") &&
                 !currentGridCube.CompareTag("StickyTile") &&
-                !currentGridCube.CompareTag("ShrinkTile"))
+                !currentGridCube.CompareTag("ShrinkTile") &&
+                !currentGridCube.CompareTag("SlipperyTile"))
             {
                 lastSafePosition = transform.position;
                 Debug.Log($"Last Safe Position updated to: {lastSafePosition}");
@@ -1048,7 +1054,7 @@ else
         {
             StartCoroutine(FallPlatform(collision.gameObject));
         }
-        else if (collision.gameObject.CompareTag("PoisonPit") || collision.gameObject.CompareTag("ShrinkTile"))
+        else if (collision.gameObject.CompareTag("PoisonPit") || collision.gameObject.CompareTag("ShrinkTile") || collision.gameObject.CompareTag("SlipperyTile"))
         {
             // Respawn à la dernière position sûre
             transform.position = lastSafePosition;
