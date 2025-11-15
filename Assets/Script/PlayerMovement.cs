@@ -9,15 +9,13 @@ public class PlayerMovement : MonoBehaviour
 {
     private Quaternion desiredRotation;
     private bool shouldRotate = false;
-    public GameObject previousGridCube; // Nouvelle variable pour tracker la tuile précédente
+    public GameObject previousGridCube;
 
     [Header("Caméras")]
     public Camera mainCamera;
     public Camera objectViewCamera;
 
-    // --- Paramètres de Mouvement ---
     [Header("Paramètres de Mouvement")]
-
     [Tooltip("Facteur de ralentissement global, si 1.0, pas de ralentissement.")]
     private float currentSpeedFactor = 1.0f;
     [Tooltip("Vitesse de rotation du joueur.")]
@@ -35,7 +33,6 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Nombre maximal de cases que le joueur peut parcourir en un seul clic.")]
     public int maxPathLength = 3;
 
-    // --- Paramètres de Redimensionnement ---
     [Header("Paramètres de Redimensionnement")]
     [Tooltip("Taille par défaut du joueur (échelle uniforme).")]
     public float defaultScale = 1.0f;
@@ -48,52 +45,43 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Durée par défaut pendant laquelle le joueur reste à taille augmentée (pour les tuiles réactives).")]
     public float defaultBoostedDuration = 5.0f;
 
-    // --- NOUVEAU: Paramètres de Mutation (Petit/Grand) ---
     [Header("Mutation du joueur")]
     [Tooltip("Indique si le joueur est actuellement dans sa forme 'petite'.")]
     public bool _isSmall = false;
-[Header("Mutation Glissante")]
-[Tooltip("Indique si le joueur a la mutation glissante.")]
-public bool IsSlippery = false;
+
+    [Header("Mutation Glissante")]
+    [Tooltip("Indique si le joueur a la mutation glissante.")]
+    public bool IsSlippery = false;
 
     public bool IsSmall
     {
         get { return _isSmall; }
-        set { _isSmall = value; } // Setter public
-    } // Propriété publique accessible en lecture, privée en écriture
+        set { _isSmall = value; }
+    }
+    
     [Tooltip("La taille (scale uniforme) du joueur quand il est dans sa forme 'petite'.")]
-    public float mutationSmallScale = 0.5f; // Scale spécifique pour la mutation "petit"
+    public float mutationSmallScale = 0.5f;
     [Tooltip("La taille (scale uniforme) du joueur quand il est dans sa forme 'normale'.")]
-    public float mutationNormalScale = 1.0f; // Scale spécifique pour la mutation "normal"
+    public float mutationNormalScale = 1.0f;
 
-    public bool IsBig = false; // Indique si le joueur est actuellement dans sa forme "grande" (pour les effets de PoisonPit)
+    public bool IsBig = false;
     [Tooltip("Le collider principal du joueur (CharacterController ou CapsuleCollider).")]
-    public Collider playerMainCollider; // Référence au collider du joueur pour ajuster sa taille
+    public Collider playerMainCollider;
 
-    private Coroutine scaleChangeCoroutine; // Pour gérer la coroutine de changement de taille
-
-
-
-    // ✅ AJOUTER ces nouvelles variables dans la section "État Collant" de PlayerMovement.cs
+    private Coroutine scaleChangeCoroutine;
 
     [Header("État Collant")]
     [Tooltip("Indique si le joueur est actuellement dans un état collant.")]
     public bool IsSticky = false;
-
     [Tooltip("Multiplicateur de délai pour les plaques qui tombent quand le joueur est collant.")]
     public float stickyFallDelayMultiplier = 1.0f;
-
-    // ✅ NOUVELLES VARIABLES pour l'effet sur les sauts
     [Tooltip("Multiplicateur de vitesse de saut quand le joueur est collant (0.5f = 50% plus lent).")]
     public float stickyJumpSpeedMultiplier = 0.5f;
-
     [Tooltip("Multiplicateur de durée de saut quand le joueur est collant (2.0f = 2x plus long).")]
     public float stickyJumpDurationMultiplier = 2.0f;
 
     private Coroutine stickyEffectCoroutine;
 
-
-    // --- Références et Grille ---
     [Header("Références Grille")]
     [Tooltip("Le LayerMask des objets de la grille (cubes).")]
     public LayerMask gridLayer;
@@ -104,7 +92,19 @@ public bool IsSlippery = false;
     [Tooltip("La distance maximale entre les centres de deux cubes pour qu'ils soient considérés comme des voisins (un saut possible).")]
     public float maxJumpDistance = 2f;
 
-    // --- Visualisation de la Sélection ---
+    // ========================================
+    // ✨ NOUVEAU : SYSTÈME DE BLOCAGE PAR DÉCORS
+    // ========================================
+    [Header("Blocage des tuiles par décors")]
+    [Tooltip("Le LayerMask des objets qui bloquent la sélection (pièces, caisses, armoires, etc.)")]
+    public LayerMask blockingDecorLayer;
+    [Tooltip("Tag alternatif pour identifier les décors bloquants (si vous préférez utiliser des tags)")]
+    public string blockingDecorTag = "BlockingDecor";
+    [Tooltip("Utiliser le LayerMask (true) ou le Tag (false) pour détecter les décors bloquants")]
+    public bool useLayerForBlocking = true;
+    [Tooltip("Hauteur maximale de détection au-dessus de la tuile pour vérifier les décors")]
+    public float decorDetectionHeight = 2.0f;
+
     [Header("Visualisation de la Sélection")]
     public Material selectedCellMaterial;
     public Material hoveredCellMaterial;
@@ -114,25 +114,22 @@ public bool IsSlippery = false;
     private GameObject lastSelectedCube;
     private GameObject lastHoveredCube;
 
-    // --- Debug/Visualisation du Chemin ---
     [Header("Debug/Visualisation du Chemin")]
     public bool showPath = true;
     public float lineWidth = 0.1f;
 
-    // --- Effet de Vibration ---
     [Header("Effets de Feedback")]
     public float shakeDuration = 0.1f;
     public float shakeMagnitude = 0.1f;
 
     private Vector3 initialCameraPosition;
-    // --- NOUVEAU: Paramètres des Plaques Tombantes ---
+
     [Header("Plaques Tombantes")]
     public string fallingPlatformTag = "FallingPlatform";
     public float fallDelay = 0.5f;
     public float fallDuration = 1.5f;
     public float fallDistance = 10f;
 
-    // --- NOUVEAU: Gestion de l'équipement ---
     [Header("Gestion de l'équipement")]
     [Tooltip("Indique si le joueur a actuellement une torche. Cochez cette case pour simuler la possession de la torche.")]
     public bool hasTorch = false;
@@ -149,10 +146,7 @@ public bool IsSlippery = false;
 
     public GameObject currentGridCube;
     private Dictionary<Vector3, GameObject> gridPositionsToCubes;
-
     private Dictionary<GameObject, Material> originalCellMaterials = new Dictionary<GameObject, Material>();
-
-    // Variable pour stocker la dernière position sûre
     public Vector3 lastSafePosition;
 
     void Awake()
@@ -160,13 +154,12 @@ public bool IsSlippery = false;
         rb = GetComponent<Rigidbody>();
         lr = GetComponent<LineRenderer>();
 
-        // Tente de récupérer automatiquement le collider principal si non assigné
         if (playerMainCollider == null)
         {
-            playerMainCollider = GetComponent<CharacterController>(); // Pour CharacterController
+            playerMainCollider = GetComponent<CharacterController>();
             if (playerMainCollider == null)
             {
-                playerMainCollider = GetComponent<CapsuleCollider>(); // Pour CapsuleCollider
+                playerMainCollider = GetComponent<CapsuleCollider>();
             }
             if (playerMainCollider == null)
             {
@@ -174,20 +167,18 @@ public bool IsSlippery = false;
             }
         }
 
-
         lr.positionCount = 0;
         lr.startWidth = lineWidth;
         lr.endWidth = lineWidth;
         lr.useWorldSpace = true;
-
         rb.freezeRotation = true;
 
         InitializeGridCubes();
+        
         if (currentGridCube != null)
         {
             transform.position = currentGridCube.transform.position + Vector3.up * verticalOffsetOnGround;
-            // INITIALISER lastSafePosition à la position de départ
-            // Assurez-vous que le cube de départ n'est pas un PoisonPit !
+            
             if (!currentGridCube.CompareTag("PoisonPit"))
             {
                 lastSafePosition = transform.position;
@@ -197,9 +188,7 @@ public bool IsSlippery = false;
                 Debug.LogError("Le joueur démarre sur un PoisonPit ! Veuillez repositionner le joueur ou le PoisonPit.");
             }
 
-            // Initialiser la taille par défaut du joueur (et la scale du collider)
-            // Utilisez la scale de mutation normale comme scale initiale
-            ApplyPlayerMutationSize(IsSmall); // Utilise la propriété IsSmall
+            ApplyPlayerMutationSize(IsSmall);
 
             Renderer cubeRenderer = currentGridCube.GetComponent<Renderer>();
             if (cubeRenderer != null && cubeRenderer.sharedMaterial != null)
@@ -223,7 +212,6 @@ public bool IsSlippery = false;
 
     void Update()
     {
-        // Seulement gérer le survol et l'input si le script est activé (i.e. non désactivé par PoisonPit)
         if (enabled)
         {
             HandleHover();
@@ -231,28 +219,25 @@ public bool IsSlippery = false;
         }
         UpdatePathVisualization();
 
-        // Exemple: Basculer la mutation avec une touche (par exemple 'T' pour "Transform")
         if (Input.GetKeyDown(KeyCode.T))
         {
             ToggleMutation();
         }
+        
         if (shouldRotate)
         {
             transform.rotation = Quaternion.RotateTowards(transform.rotation, desiredRotation, rotationSpeed * Time.deltaTime);
 
-            // Si la rotation est quasiment atteinte, on arrête
             if (Quaternion.Angle(transform.rotation, desiredRotation) < 0.1f)
             {
                 transform.rotation = desiredRotation;
                 shouldRotate = false;
             }
         }
-
     }
 
     void FixedUpdate()
     {
-        // Seulement effectuer les sauts si le script est activé
         if (enabled)
         {
             if (isJumping)
@@ -321,11 +306,73 @@ public bool IsSlippery = false;
         return new Vector3(Mathf.Round(pos.x * 1000) / 1000, pos.y, Mathf.Round(pos.z * 1000) / 1000);
     }
 
+    // ========================================
+    // ✨ NOUVELLE MÉTHODE : Vérifie si une tuile est bloquée par un décor
+    // Cette fonction est le cœur du système de blocage.
+    // Elle projette une boîte invisible au-dessus de chaque tuile pour détecter
+    // si un objet (pièce, caisse, armoire) empêche le joueur d'y atterrir.
+    // ========================================
+    private bool IsTileBlockedByDecor(GameObject tile)
+    {
+        // Si la tuile n'existe pas, on considère qu'elle n'est pas bloquée
+        if (tile == null) return false;
+
+        // On commence la détection légèrement au-dessus de la tuile pour éviter
+        // de détecter la tuile elle-même
+        Vector3 tileCenter = tile.transform.position + Vector3.up * 0.1f;
+        
+        // On crée une boîte de détection qui s'étend vers le haut.
+        // La largeur de la boîte est légèrement plus petite que la cellule (0.4f au lieu de 0.5f)
+        // pour éviter les faux positifs sur les bords entre tuiles adjacentes
+        Vector3 boxHalfExtents = new Vector3(cellSize * 0.4f, decorDetectionHeight * 0.5f, cellSize * 0.4f);
+        Vector3 boxCenter = tileCenter + Vector3.up * (decorDetectionHeight * 0.5f);
+
+        if (useLayerForBlocking)
+        {
+            // Méthode 1 : Détection par LayerMask (recommandée pour les performances)
+            // Cette approche est plus rapide car Unity filtre directement les objets
+            // par leur layer sans avoir à vérifier chaque collider individuellement
+            Collider[] hitColliders = Physics.OverlapBox(boxCenter, boxHalfExtents, Quaternion.identity, blockingDecorLayer);
+            
+            if (hitColliders.Length > 0)
+            {
+                // Feedback optionnel pour le développeur en mode debug
+                // Décommentez la ligne suivante si vous voulez voir quel objet bloque
+                // Debug.Log($"Tuile {tile.name} bloquée par : {hitColliders[0].gameObject.name}");
+                return true;
+            }
+        }
+        else
+        {
+            // Méthode 2 : Détection par Tag (plus simple à configurer mais moins performante)
+            // Cette approche détecte tous les colliders puis filtre par tag
+            Collider[] hitColliders = Physics.OverlapBox(boxCenter, boxHalfExtents, Quaternion.identity);
+            
+            foreach (Collider col in hitColliders)
+            {
+                // On vérifie que l'objet a le bon tag ET qu'il n'est pas la tuile elle-même
+                // Cette double vérification évite que la tuile se bloque elle-même
+                if (col.gameObject != tile && col.gameObject.CompareTag(blockingDecorTag))
+                {
+                    // Debug.Log($"Tuile {tile.name} bloquée par : {col.gameObject.name}");
+                    return true;
+                }
+            }
+        }
+
+        // Si aucun décor n'a été détecté, la tuile est libre
+        return false;
+    }
+
+    // ========================================
+    // MÉTHODE MODIFIÉE : HandleHover avec vérification des décors
+    // Cette méthode gère l'affichage visuel quand on survole une tuile avec la souris
+    // ========================================
     void HandleHover()
     {
         ResetAllCellMaterials();
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
         GameObject currentHoveredCube = null;
 
@@ -333,8 +380,27 @@ public bool IsSlippery = false;
         {
             GameObject potentialHoveredCube = hit.collider.gameObject;
 
-            // Vérifier si c'est un PoisonPit ou un ShrinkTile pour l'affichage "hors de portée" au survol
-            if (potentialHoveredCube.CompareTag("PoisonPit") || potentialHoveredCube.CompareTag("ShrinkTile") || potentialHoveredCube.CompareTag("SlipperyTile"))
+            // ✨ VÉRIFICATION PRIORITAIRE : Si la tuile est bloquée par un décor,
+            // on l'affiche en rouge et on arrête le traitement ici.
+            // C'est important de faire cette vérification AVANT les autres car
+            // un décor rend la tuile inaccessible même si elle serait normalement valide
+            if (IsTileBlockedByDecor(potentialHoveredCube))
+            {
+                Renderer cubeRenderer = potentialHoveredCube.GetComponent<Renderer>();
+                if (cubeRenderer != null && outOfRangeCellMaterial != null)
+                {
+                    if (!originalCellMaterials.ContainsKey(potentialHoveredCube))
+                    {
+                        originalCellMaterials.Add(potentialHoveredCube, cubeRenderer.sharedMaterial);
+                    }
+                    cubeRenderer.material = outOfRangeCellMaterial;
+                }
+                return; // On quitte la fonction pour empêcher le survol normal
+            }
+
+            // Vérification des tuiles spéciales (PoisonPit, ShrinkTile, etc.)
+            if (potentialHoveredCube.CompareTag("PoisonPit") || potentialHoveredCube.CompareTag("ShrinkTile") || 
+                potentialHoveredCube.CompareTag("SlipperyTile") || potentialHoveredCube.CompareTag("Poison"))
             {
                 Renderer cubeRenderer = potentialHoveredCube.GetComponent<Renderer>();
                 if (cubeRenderer != null && outOfRangeCellMaterial != null)
@@ -396,7 +462,6 @@ public bool IsSlippery = false;
         }
     }
 
-
     public void ResetAllCellMaterials()
     {
         foreach (var entry in originalCellMaterials)
@@ -427,9 +492,10 @@ public bool IsSlippery = false;
         lastHoveredCube = null;
     }
 
-
-
-
+    // ========================================
+    // MÉTHODE MODIFIÉE : HandleInput avec vérification des décors
+    // Cette méthode gère le clic sur une tuile pour déplacer le joueur
+    // ========================================
     void HandleInput()
     {
         if (Input.GetMouseButtonDown(0))
@@ -440,15 +506,24 @@ public bool IsSlippery = false;
             {
                 GameObject targetCube = hit.collider.gameObject;
 
-                // Définir les tuiles qui ne doivent pas être des obstacles mais peuvent avoir un comportement spécial
+                // ✨ VÉRIFICATION PRIORITAIRE : Bloquage par décor
+                // Si un joueur essaie de cliquer sur une tuile bloquée par un décor,
+                // on refuse l'action avec un feedback visuel (tremblement d'écran)
+                if (IsTileBlockedByDecor(targetCube))
+                {
+                    Debug.Log("Cette tuile est bloquée par un décor (pièce, caisse, armoire, etc.) !");
+                    StartCoroutine(ShakeScreen());
+                    ResetAllCellMaterials();
+                    return; // Empêche complètement la sélection
+                }
+
                 bool isTargetPoisonPit = targetCube.CompareTag("PoisonPit");
                 bool isTargetShrinkTile = targetCube.CompareTag("ShrinkTile");
-                bool isTargetBoostedTile = targetCube.CompareTag("StickyTile"); // J'ai ajouté le Tag de la tuile verte
+                bool isTargetBoostedTile = targetCube.CompareTag("StickyTile");
                 bool isTargetSlipperyTile = targetCube.CompareTag("SlipperyTile");
                 bool isTargetMutationWall = targetCube.CompareTag("MutationWall");
+                bool isTargetPoison = targetCube.CompareTag("Poison");
 
-
-                // Vérifier si le chemin est valide et dans les limites de la portée
                 List<GameObject> tempPath = GetShortestPath(currentGridCube, targetCube);
 
                 if (tempPath == null || tempPath.Count == 0)
@@ -459,7 +534,6 @@ public bool IsSlippery = false;
                     return;
                 }
 
-                // La vraie vérification de la longueur du chemin pour TOUTES les tuiles
                 if (tempPath.Count > maxPathLength)
                 {
                     Debug.Log("Le chemin est trop long !");
@@ -468,7 +542,6 @@ public bool IsSlippery = false;
                     return;
                 }
 
-                // Vérifier si le joueur est trop grand pour passer un mur de mutation
                 if (isTargetMutationWall && !IsSmall)
                 {
                     Debug.Log("Je suis trop grand pour passer ici !");
@@ -494,8 +567,9 @@ public bool IsSlippery = false;
 
         if (newSelectedCube != null)
         {
-            // Ne pas sélectionner visuellement les tuiles spéciales ou les murs de mutation
-            if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile") || newSelectedCube.CompareTag("StickyTile") || newSelectedCube.CompareTag("FallingPlatform") || newSelectedCube.CompareTag("SlipperyTile"))
+            if (newSelectedCube.CompareTag("PoisonPit") || newSelectedCube.CompareTag("ShrinkTile") || 
+                newSelectedCube.CompareTag("StickyTile") || newSelectedCube.CompareTag("FallingPlatform") || 
+                newSelectedCube.CompareTag("SlipperyTile") || newSelectedCube.CompareTag("Poison"))
             {
                 lastSelectedCube = null;
                 return;
@@ -519,7 +593,6 @@ public bool IsSlippery = false;
         }
     }
 
-
     void CalculatePathForMovement(GameObject targetCube)
     {
         if (isJumping || pathCalculated || targetCube == null || currentGridCube == null) return;
@@ -540,17 +613,15 @@ public bool IsSlippery = false;
             path = calculatedGameObjectsPath.Select(cube => cube.transform.position).ToList();
             pathCalculated = true;
         }
-else
-{
-    Debug.LogWarning("Chemin invalide pour le mouvement !");
-    
-    pathCalculated = false;
-    ResetAllCellMaterials();
-    StartCoroutine(ShakeScreen());
-}
+        else
+        {
+            Debug.LogWarning("Chemin invalide pour le mouvement !");
+            pathCalculated = false;
+            ResetAllCellMaterials();
+            StartCoroutine(ShakeScreen());
+        }
     }
 
-    // Coroutine pour faire vibrer l'écran
     private IEnumerator ShakeScreen()
     {
         if (mainCamera == null)
@@ -558,24 +629,19 @@ else
             Debug.LogWarning("Main Camera n'est pas assignée pour l'effet de vibration.");
             yield break;
         }
-        // Sauvegarder la position initiale de la caméra
+        
         initialCameraPosition = mainCamera.transform.localPosition;
         float elapsed = 0.0f;
 
         while (elapsed < shakeDuration)
         {
-            // Génère un vecteur de vibration aléatoire dans un cercle
             float x = Random.Range(-1f, 1f) * shakeMagnitude;
             float y = Random.Range(-1f, 1f) * shakeMagnitude;
-
-            // Applique la vibration à la position de la caméra
             mainCamera.transform.localPosition = initialCameraPosition + new Vector3(x, y, 0);
-
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // Réinitialise la position de la caméra à sa position initiale après la vibration
         mainCamera.transform.localPosition = initialCameraPosition;
     }
 
@@ -606,15 +672,14 @@ else
                 break;
             }
 
-            // Si la distance actuelle est déjà maxPathLength et que la cible n'est PAS une tuile spéciale ou un mur de mutation
-            if (distance[current] >= maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall") || target.CompareTag("SlipperyTile")))
+            if (distance[current] >= maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || 
+                target.CompareTag("MutationWall") || target.CompareTag("SlipperyTile")))
             {
                 continue;
             }
 
-            foreach (GameObject neighbor in GetNeighbors(current)) // Appelle la méthode GetNeighbors modifiée
+            foreach (GameObject neighbor in GetNeighbors(current))
             {
-                // La logique de vérification des obstacles et murs de mutation est maintenant dans GetNeighbors
                 if (!visited.Contains(neighbor))
                 {
                     visited.Add(neighbor);
@@ -622,8 +687,9 @@ else
                     cameFrom[neighbor] = current;
                     distance[neighbor] = distance[current] + 1;
 
-                    // Condition pour les tuiles non-spéciales et non-murs de mutation : si le chemin est trop long, on ne le prend pas
-                    if (neighbor == target && distance[neighbor] > maxPathLength && !(neighbor.CompareTag("PoisonPit") || neighbor.CompareTag("ShrinkTile") || neighbor.CompareTag("MutationWall") || neighbor.CompareTag("SlipperyTile")))
+                    if (neighbor == target && distance[neighbor] > maxPathLength && 
+                        !(neighbor.CompareTag("PoisonPit") || neighbor.CompareTag("ShrinkTile") || 
+                        neighbor.CompareTag("MutationWall") || neighbor.CompareTag("SlipperyTile")))
                     {
                         foundPath = false;
                         queue.Clear();
@@ -631,6 +697,7 @@ else
                     }
                 }
             }
+            
             if (queue.Count == 0 && current != target)
             {
                 foundPath = false;
@@ -649,14 +716,13 @@ else
             }
             pathObjects.Reverse();
 
-            // S'assurer que le chemin n'inclut pas le point de départ
             if (pathObjects.Count > 0 && pathObjects[0] == start)
             {
                 pathObjects.RemoveAt(0);
             }
 
-            // Dernière vérification de la longueur du chemin pour les non-tuiles spéciales et non-murs de mutation
-            if (pathObjects.Count > maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || target.CompareTag("MutationWall") || target.CompareTag("SlipperyTile")))
+            if (pathObjects.Count > maxPathLength && !(target.CompareTag("PoisonPit") || target.CompareTag("ShrinkTile") || 
+                target.CompareTag("MutationWall") || target.CompareTag("SlipperyTile")))
             {
                 return null;
             }
@@ -668,15 +734,14 @@ else
 
     List<GameObject> CalculatePathForHover(GameObject startCube, GameObject targetCube)
     {
-        // Une tuile spéciale ou un mur de mutation ne devrait pas être affichée comme une cible valide pour le survol
-        if (targetCube.CompareTag("PoisonPit") || targetCube.CompareTag("ShrinkTile") || targetCube.CompareTag("MutationWall") || targetCube.CompareTag("SlipperyTile")) return null;
+        if (targetCube.CompareTag("PoisonPit") || targetCube.CompareTag("ShrinkTile") || 
+            targetCube.CompareTag("MutationWall") || targetCube.CompareTag("SlipperyTile")) return null;
 
         if (((1 << targetCube.layer) & obstacleLayer) != 0) return null;
 
         List<GameObject> tempPath = GetShortestPath(startCube, targetCube);
         return tempPath;
     }
-
 
     List<GameObject> GetNeighbors(GameObject cube)
     {
@@ -699,20 +764,18 @@ else
                 continue;
             }
 
-            // Vérification d'obstacle sur la trajectoire du saut
             RaycastHit hit;
             if (Physics.Linecast(cubePos, potentialNeighbor.transform.position, out hit, obstacleLayer))
             {
                 if (hit.collider.gameObject != potentialNeighbor)
                 {
-                    // Vérifier si le joueur est petit et peut passer sous l'obstacle
                     if (IsSmall)
                     {
-                        continue; // Le joueur est petit et peut passer sous l'obstacle
+                        continue;
                     }
                     else
                     {
-                        continue; // Trajectoire bloquée, ce n'est pas un voisin valide
+                        continue;
                     }
                 }
             }
@@ -729,7 +792,7 @@ else
             {
                 if (!IsSmall)
                 {
-                    continue; // Le joueur est trop grand pour considérer le mur comme une destination
+                    continue;
                 }
             }
 
@@ -739,9 +802,6 @@ else
         return neighbors;
     }
 
-
-
-
     void StartNextJump()
     {
         isJumping = true;
@@ -749,7 +809,6 @@ else
         startJumpPosition = transform.position;
         targetJumpPosition = path[currentPathIndex];
 
-        // Préparer la rotation vers la direction du saut
         Vector3 direction = (targetJumpPosition - startJumpPosition).normalized;
         direction.y = 0f;
 
@@ -760,17 +819,13 @@ else
         }
     }
 
-
-
-    // ✅ MODIFIER la méthode PerformJump existante
     void PerformJump()
     {
-        // ✅ MODIFICATION : Appliquer les multiplicateurs collants
         float currentJumpDuration = jumpDuration * (IsSticky ? stickyJumpDurationMultiplier : 1.0f);
         float currentHorizontalSpeed = horizontalSpeed * (IsSticky ? stickyJumpSpeedMultiplier : 1.0f);
 
         jumpTimer += Time.fixedDeltaTime;
-        float progress = jumpTimer / currentJumpDuration; // ✅ Utilise la durée modifiée
+        float progress = jumpTimer / currentJumpDuration;
 
         if (progress >= 1f)
         {
@@ -778,15 +833,12 @@ else
             rb.linearVelocity = Vector3.zero;
             isJumping = false;
 
-            // ✅ NOUVEAU : Sauvegarder la tuile actuelle comme tuile précédente AVANT de changer
             previousGridCube = currentGridCube;
-
             currentGridCube = FindNearestGridCube(transform.position);
             if (currentGridCube == null) Debug.LogError("Le joueur a atterri hors grille !");
 
             currentPathIndex++;
 
-            // ✅ MODIFICATION : Ne mettre à jour lastSafePosition que si ce n'est PAS une tuile réactive
             if (currentGridCube != null &&
                 !currentGridCube.CompareTag("PoisonPit") &&
                 !currentGridCube.CompareTag("StickyTile") &&
@@ -810,7 +862,6 @@ else
         }
         else
         {
-            // ✅ MODIFICATION : Utiliser la vitesse horizontale modifiée pour l'interpolation
             Vector3 currentPosHorizontal = Vector3.Lerp(
                 new Vector3(startJumpPosition.x, 0, startJumpPosition.z),
                 new Vector3(targetJumpPosition.x, 0, targetJumpPosition.z),
@@ -826,7 +877,6 @@ else
             direction.y = 0f;
             if (direction != Vector3.zero)
             {
-                // ✅ MODIFICATION : Appliquer aussi le ralentissement à la rotation
                 float currentRotationSpeed = rotationSpeed * (IsSticky ? stickyJumpSpeedMultiplier : 1.0f);
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, currentRotationSpeed * Time.fixedDeltaTime);
@@ -834,7 +884,6 @@ else
         }
     }
 
-    // ✅ NOUVELLE MÉTHODE : Pour revenir à la tuile précédente
     public void ReturnToPreviousTile()
     {
         if (previousGridCube != null)
@@ -846,63 +895,50 @@ else
         }
         else
         {
-            // Fallback sur lastSafePosition si pas de tuile précédente
             transform.position = lastSafePosition;
             Debug.Log("Pas de tuile précédente trouvée, retour à lastSafePosition");
         }
     }
 
-
-    // --- NOUVELLES/MODIFIÉES MÉTHODES POUR LA TAILLE DE LA BOULE ---
-
-    // Méthode publique pour activer/désactiver la torche
     public void PickUpTorch()
     {
         hasTorch = true;
         Debug.Log("Torche ramassée !");
     }
 
-    // Nouvelle fonction pour basculer la mutation (Petit/Normal)
     public void ToggleMutation()
     {
-        IsSmall = !IsSmall; // Inverse l'état via la propriété
-        ApplyPlayerMutationSize(IsSmall);   // Applique la nouvelle taille de mutation
+        IsSmall = !IsSmall;
+        ApplyPlayerMutationSize(IsSmall);
         Debug.Log("Mutation activée ! Le joueur est maintenant " + (IsSmall ? "petit" : "normal") + ".");
     }
 
-    // Applique la taille du joueur en fonction de sa mutation et ajuste le collider
     private void ApplyPlayerMutationSize(bool isCurrentlySmall)
     {
         float targetScale = isCurrentlySmall ? mutationSmallScale : mutationNormalScale;
         Vector3 finalGlobalScale = Vector3.one * targetScale;
 
-        // Applique la scale au GameObject
         transform.localScale = finalGlobalScale;
 
-        // Ajuste la taille du collider du joueur
         if (playerMainCollider != null)
         {
             if (playerMainCollider is CharacterController characterController)
             {
-                // Ces valeurs doivent être ajustées pour correspondre à votre modèle de joueur
-                characterController.height = isCurrentlySmall ? 1.0f : 2.0f; // Exemple de hauteur
-                characterController.radius = isCurrentlySmall ? 0.25f : 0.5f; // Exemple de rayon
-                // Assurez-vous que le centre du CharacterController est correct (généralement height / 2)
+                characterController.height = isCurrentlySmall ? 1.0f : 2.0f;
+                characterController.radius = isCurrentlySmall ? 0.25f : 0.5f;
                 characterController.center = new Vector3(0, characterController.height / 2f, 0);
             }
             else if (playerMainCollider is CapsuleCollider capsuleCollider)
             {
-                capsuleCollider.height = isCurrentlySmall ? 1.0f : 2.0f; // Exemple de hauteur
-                capsuleCollider.radius = isCurrentlySmall ? 0.25f : 0.5f; // Exemple de rayon
+                capsuleCollider.height = isCurrentlySmall ? 1.0f : 2.0f;
+                capsuleCollider.radius = isCurrentlySmall ? 0.25f : 0.5f;
                 capsuleCollider.center = new Vector3(0, capsuleCollider.height / 2f, 0);
             }
             else if (playerMainCollider is BoxCollider boxCollider)
             {
-                // Si c'est un BoxCollider, ajustez sa taille (size)
-                boxCollider.size = isCurrentlySmall ? new Vector3(0.5f, 1.0f, 0.5f) : new Vector3(1.0f, 2.0f, 1.0f); // Exemple de taille
-                boxCollider.center = isCurrentlySmall ? new Vector3(0, 0.5f, 0) : new Vector3(0, 1.0f, 0); // Exemple de centre
+                boxCollider.size = isCurrentlySmall ? new Vector3(0.5f, 1.0f, 0.5f) : new Vector3(1.0f, 2.0f, 1.0f);
+                boxCollider.center = isCurrentlySmall ? new Vector3(0, 0.5f, 0) : new Vector3(0, 1.0f, 0);
             }
-            // Ajoutez d'autres types de colliders si nécessaire
         }
         else
         {
@@ -910,27 +946,19 @@ else
         }
     }
 
-
-    // Méthode publique pour changer la taille, maintenant avec une durée paramétrable.
-    // Une 'holdDuration' de -1f signifie "indéfiniment".
-    // Ajoute cette méthode dans PlayerMovement.cs ou modifie ChangePlayerScale
     public void ChangePlayerScale(float targetUniformScale, float holdDuration)
     {
-        // Arrête toute coroutine de changement de taille en cours
         if (scaleChangeCoroutine != null)
         {
             StopCoroutine(scaleChangeCoroutine);
         }
 
-        // ✅ AJOUT : Applique immédiatement la mutation du collider
-        // Si on grossit (targetUniformScale > mutationNormalScale), on n'est plus petit
-        // Si on rétrécit (targetUniformScale < mutationNormalScale), on devient petit
         if (targetUniformScale <= mutationSmallScale)
         {
             IsSmall = true;
             IsBig = false;
         }
-        else if (targetUniformScale >= mutationNormalScale * 1.5f) // Seuil pour "gros"
+        else if (targetUniformScale >= mutationNormalScale * 1.5f)
         {
             IsSmall = false;
             IsBig = true;
@@ -941,58 +969,43 @@ else
             IsBig = false;
         }
 
-        // Applique immédiatement la taille du collider
         ApplyPlayerMutationSize(IsSmall);
-
-        // Démarre la coroutine pour l'effet visuel
         scaleChangeCoroutine = StartCoroutine(ScalePlayerOverTime(targetUniformScale, holdDuration));
     }
 
-    // Coroutine modifiée pour inclure une durée de maintien paramétrable et la gestion de "indéfini"
     private IEnumerator ScalePlayerOverTime(float targetUniformScale, float holdDuration)
     {
         Vector3 initialScale = transform.localScale;
-        Vector3 finalScale = Vector3.one * targetUniformScale; // Utilise la targetUniformScale pour toutes les dimensions
+        Vector3 finalScale = Vector3.one * targetUniformScale;
         float elapsed = 0f;
 
-        // Transition d'agrandissement/réduction
         while (elapsed < scaleTransitionDuration)
         {
             transform.localScale = Vector3.Lerp(initialScale, finalScale, elapsed / scaleTransitionDuration);
             elapsed += Time.deltaTime;
             yield return null;
         }
-        transform.localScale = finalScale; // S'assurer d'atteindre la taille cible exacte
+        transform.localScale = finalScale;
 
-        // Si la durée de maintien est positive (non -1f), alors on attend et on revient à la taille par défaut
-        if (holdDuration >= 0f) // IMPORTANT : Vérifier si ce n'est PAS un effet permanent
+        if (holdDuration >= 0f)
         {
             yield return new WaitForSeconds(holdDuration);
-            // Revenir à la taille par défaut
-            ChangePlayerScale(defaultScale, scaleTransitionDuration); // Utiliser la transitionDuration pour le retour
+            ChangePlayerScale(defaultScale, scaleTransitionDuration);
         }
-        // Si holdDuration est -1f, la coroutine se termine ici et la taille reste à 'finalScale' indéfiniment.
-        // On ne met pas scaleChangeCoroutine = null; ici si c'est permanent, car il n'y a pas de fin "naturelle"
-        // de la coroutine pour revenir à la normale. Si vous avez besoin de forcer un retour à la normale pour un effet permanent
-        // (par exemple, si le joueur touche un autre objet qui annule l'effet), vous devrez appeler ChangePlayerScale(defaultScale, ...) manuellement.
-        if (holdDuration >= 0f) // Seulement si l'effet n'est PAS permanent
+        
+        if (holdDuration >= 0f)
         {
-            scaleChangeCoroutine = null; // La coroutine est terminée
+            scaleChangeCoroutine = null;
         }
     }
 
-    // --- FIN NOUVELLES MÉTHODES POUR LA TAILLE DE LA BOULE ---
-
-    // ✅ MODIFIER la méthode SetStickyState existante pour inclure un feedback visuel
     public void SetStickyState(bool state, float duration, float newStickyFallDelayMultiplier)
     {
-        // On évite de relancer l'effet si il est déjà actif
         if (IsSticky == state) return;
 
         IsSticky = state;
         stickyFallDelayMultiplier = newStickyFallDelayMultiplier;
 
-        // ✅ AJOUT : Feedback de debug amélioré
         if (IsSticky)
         {
             Debug.Log($"🟢 EFFET COLLANT ACTIVÉ ! Vitesse: {stickyJumpSpeedMultiplier}x, Durée: {stickyJumpDurationMultiplier}x");
@@ -1010,7 +1023,6 @@ else
         else
         {
             Debug.Log("🔴 EFFET COLLANT DÉSACTIVÉ");
-            // Réinitialise le multiplicateur
             stickyFallDelayMultiplier = 1.0f;
             if (stickyEffectCoroutine != null)
             {
@@ -1020,12 +1032,9 @@ else
         }
     }
 
-    // ✅ NOUVELLE COROUTINE : Pour gérer la durée de l'effet collant
     private IEnumerator StickyEffectTimer(float duration)
     {
         yield return new WaitForSeconds(duration);
-
-        // Désactive l'effet collant après la durée spécifiée
         SetStickyState(false, 0, 1.0f);
         stickyEffectCoroutine = null;
     }
@@ -1047,22 +1056,20 @@ else
         }
     }
 
-    // ✅ MODIFICATION de la méthode OnCollisionEnter
     void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag(fallingPlatformTag))
         {
             StartCoroutine(FallPlatform(collision.gameObject));
         }
-        else if (collision.gameObject.CompareTag("PoisonPit") || collision.gameObject.CompareTag("ShrinkTile") || collision.gameObject.CompareTag("SlipperyTile"))
+        else if (collision.gameObject.CompareTag("PoisonPit") || collision.gameObject.CompareTag("ShrinkTile") || 
+                 collision.gameObject.CompareTag("SlipperyTile"))
         {
-            // Respawn à la dernière position sûre
             transform.position = lastSafePosition;
             Debug.Log("Le joueur a touché une tuile dangereuse et respawn à la dernière position sûre.");
         }
     }
 
-    // ✅ MODIFICATION de la méthode FallPlatform existante pour prendre en compte l'effet collant
     IEnumerator FallPlatform(GameObject platform)
     {
         if (!platform.activeSelf)
@@ -1097,67 +1104,87 @@ else
         platform.SetActive(false);
     }
 
-
-
+    // ========================================
+    // ✨ MÉTHODE BONUS : Visualisation Gizmos améliorée avec les décors bloquants
+    // Cette fonction dessine des repères visuels dans l'éditeur Unity pour faciliter
+    // le débogage et la conception de niveau.
+    // ========================================
     void OnDrawGizmos()
     {
         if (gridLayer.value == 0) return;
 
+        // Dessine la grille de base en cyan
         if (gridPositionsToCubes != null)
         {
             Gizmos.color = Color.cyan;
             foreach (var entry in gridPositionsToCubes)
             {
-                Gizmos.DrawWireCube(new Vector3(entry.Key.x, entry.Value.transform.position.y + 0.05f, entry.Key.z), new Vector3(cellSize, 0.1f, cellSize));
+                Gizmos.DrawWireCube(new Vector3(entry.Key.x, entry.Value.transform.position.y + 0.05f, entry.Key.z), 
+                    new Vector3(cellSize, 0.1f, cellSize));
             }
         }
 
+        // Dessine la position actuelle du joueur en jaune
         if (currentGridCube != null)
         {
             Gizmos.color = Color.yellow;
-            Gizmos.DrawWireCube(new Vector3(currentGridCube.transform.position.x, currentGridCube.transform.position.y + 0.1f, currentGridCube.transform.position.z), new Vector3(cellSize, 0.1f, cellSize));
+            Gizmos.DrawWireCube(new Vector3(currentGridCube.transform.position.x, currentGridCube.transform.position.y + 0.1f, 
+                currentGridCube.transform.position.z), new Vector3(cellSize, 0.1f, cellSize));
         }
 
+        // Dessine le chemin prévu en vert
         if (showPath && pathCalculated && path.Count > 0)
         {
-            Gizmos.color = Color.green; // Couleur pour le chemin
+            Gizmos.color = Color.green;
             for (int i = 0; i < path.Count - 1; i++)
             {
-                Gizmos.DrawLine(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), path[i + 1] + Vector3.up * (0.1f + verticalOffsetOnGround));
+                Gizmos.DrawLine(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), 
+                    path[i + 1] + Vector3.up * (0.1f + verticalOffsetOnGround));
                 Gizmos.DrawSphere(path[i] + Vector3.up * (0.1f + verticalOffsetOnGround), 0.05f);
             }
-            Gizmos.DrawSphere(path[path.Count - 1] + Vector3.up * (0.1f + verticalOffsetOnGround), 0.05f); // Dernier point
+            Gizmos.DrawSphere(path[path.Count - 1] + Vector3.up * (0.1f + verticalOffsetOnGround), 0.05f);
         }
 
-}
-    // 🔑 Copie et colle ces deux blocs DANS ta classe PlayerMovement :
+        // ✨ NOUVEAU : Visualisation des tuiles bloquées par des décors
+        // Dessine des boîtes rouges semi-transparentes au-dessus des tuiles bloquées
+        // Ceci permet de voir facilement quelles tuiles sont inaccessibles à cause de décors
+        if (gridPositionsToCubes != null && Application.isEditor)
+        {
+            foreach (var entry in gridPositionsToCubes)
+            {
+                if (IsTileBlockedByDecor(entry.Value))
+                {
+                    // Boîte rouge transparente indiquant le blocage
+                    Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+                    Vector3 boxCenter = entry.Value.transform.position + Vector3.up * (decorDetectionHeight * 0.5f);
+                    Vector3 boxSize = new Vector3(cellSize * 0.8f, decorDetectionHeight, cellSize * 0.8f);
+                    Gizmos.DrawCube(boxCenter, boxSize);
+                    
+                    // Dessine aussi un cadre rouge autour de la tuile au sol
+                    Gizmos.color = Color.red;
+                    Gizmos.DrawWireCube(new Vector3(entry.Value.transform.position.x, 
+                        entry.Value.transform.position.y + 0.05f, entry.Value.transform.position.z), 
+                        new Vector3(cellSize, 0.1f, cellSize));
+                }
+            }
+        }
+    }
 
-    /// <summary>
-    /// Ajoute une tuile (GameObject) à la grille de navigation.
-    /// </summary>
     public void AddGridCube(GameObject cube)
     {
-        // Normalisation de la position pour s'assurer que le Vector3 est exact
         Vector3 cubePos = new Vector3(
             Mathf.Round(cube.transform.position.x * 1000) / 1000,
             cube.transform.position.y,
             Mathf.Round(cube.transform.position.z * 1000) / 1000);
 
-        // Vérifie si la grille est initialisée et si la position n'existe pas déjà
-        // NOTE : Assure-toi que 'gridPositionsToCubes' est bien le nom de ton dictionnaire de grille.
         if (gridPositionsToCubes != null && !gridPositionsToCubes.ContainsKey(cubePos))
         {
             gridPositionsToCubes.Add(cubePos, cube);
-            // Debug.Log($"[Grille] Tuile {cube.name} ré-activée et ajoutée à la grille.");
         }
     }
 
-    /// <summary>
-    /// Retire une tuile (GameObject) de la grille de navigation.
-    /// </summary>
     public void RemoveGridCube(GameObject cube)
     {
-        // Normalisation de la position
         Vector3 cubePos = new Vector3(
             Mathf.Round(cube.transform.position.x * 1000) / 1000,
             cube.transform.position.y,
@@ -1166,54 +1193,45 @@ else
         if (gridPositionsToCubes != null && gridPositionsToCubes.ContainsKey(cubePos))
         {
             gridPositionsToCubes.Remove(cubePos);
-            // Debug.Log($"[Grille] Tuile {cube.name} retirée de la grille de navigation.");
         }
     }
 
-
-    // Méthode publique pour la téléportation depuis d'autres scripts
     public void TeleportToPosition(Vector3 targetPosition)
-{
-    // Arrête tout mouvement en cours
-    isJumping = false;
-    jumpTimer = 0f;
-    pathCalculated = false;
-    path.Clear();
-    currentPathIndex = 0;
-    
-    // Vide la visualisation du chemin
-    if (lr != null)
     {
-        lr.positionCount = 0;
+        isJumping = false;
+        jumpTimer = 0f;
+        pathCalculated = false;
+        path.Clear();
+        currentPathIndex = 0;
+        
+        if (lr != null)
+        {
+            lr.positionCount = 0;
+        }
+        
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+        
+        Vector3 teleportPosition = targetPosition;
+        teleportPosition.y += verticalOffsetOnGround;
+        transform.position = teleportPosition;
+        
+        GameObject newGridCube = FindNearestGridCube(transform.position);
+        if (newGridCube != null)
+        {
+            previousGridCube = currentGridCube;
+            currentGridCube = newGridCube;
+            lastSafePosition = teleportPosition;
+            Debug.Log($"Téléportation réussie vers {newGridCube.name}");
+        }
+        else
+        {
+            Debug.LogError("Aucun cube de grille trouvé près de la position de téléportation !");
+        }
+        
+        ResetAllCellMaterials();
     }
-    
-    // Arrête la vélocité du Rigidbody
-    if (rb != null)
-    {
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
-    }
-    
-    // Positionne le joueur
-    Vector3 teleportPosition = targetPosition;
-    teleportPosition.y += verticalOffsetOnGround;
-    transform.position = teleportPosition;
-    
-    // Met à jour la position sur la grille
-    GameObject newGridCube = FindNearestGridCube(transform.position);
-    if (newGridCube != null)
-    {
-        previousGridCube = currentGridCube;
-        currentGridCube = newGridCube;
-        lastSafePosition = teleportPosition;
-        Debug.Log($"Téléportation réussie vers {newGridCube.name}");
-    }
-    else
-    {
-        Debug.LogError("Aucun cube de grille trouvé près de la position de téléportation !");
-    }
-    
-    // Remet à zéro les matériaux des cellules
-    ResetAllCellMaterials();
-}
 }
